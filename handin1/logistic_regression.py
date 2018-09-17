@@ -26,6 +26,9 @@ def logistic(z):
 
 class LogisticRegressionClassifier():
 
+    w = []
+    history = []
+
     def __init__(self):
         self.w = None
 
@@ -44,7 +47,6 @@ class LogisticRegressionClassifier():
            cost: scalar the cross entropy cost of logistic regression with data X,y 
            grad: np.arrray shape(n,d) gradient of cost at w 
         """
-       # w = np.reshape(w,(len(w),1))
         cost = 0
         grad = np.zeros(w.shape)
         ### YOUR CODE HERE 5 - 15 lines
@@ -87,6 +89,11 @@ class LogisticRegressionClassifier():
         if w is None: w = np.zeros(X.shape[1])
         history = []        
         ### YOUR CODE HERE 14 - 20 lines
+        for i in range(epochs):
+            costGrad = self.cost_grad(X, y, w)  # compute cost and gradient of the data with weights
+            history.append(costGrad[0])  # remember the loss in iteration
+            w -= lr * costGrad[1]  # upgrade weights depending on gradient
+
         ### END CODE
         self.w = w
         self.history = history
@@ -105,7 +112,7 @@ class LogisticRegressionClassifier():
         pred = np.zeros(X.shape[0])
         ### YOUR CODE HERE 1 - 4 lines
         ### END CODE
-        return out
+        return 0
     
     def score(self, X, y):
         """ Compute model accuracy  on Data X with labels y
@@ -159,10 +166,19 @@ def test_grad():
     print('Test Success')
 
 
+def test_fit():
+    print('*' * 5, 'Testing  Fit')
+    X = np.array([[1.0, 0.0], [1.0, 1.0], [2.0, 3.0]])
+    w = np.array([0.0, 0.0])
+    y = np.array([0, 0, 1]).astype('int64')
+    lr = LogisticRegressionClassifier()
+    lr.fit(X=X, y=y, w=w, epochs=10000)
+    print(lr.history)
+    print('Test Success')
+
     
 if __name__ == '__main__':
     test_logistic()
     test_cost()
     test_grad()
-    
-    
+    test_fit()
