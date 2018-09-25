@@ -1,5 +1,8 @@
 import numpy as np
 import h1_util
+from sklearn.utils import shuffle
+import scipy
+from sklearn.utils import resample
 
 def logistic(z):
     
@@ -53,19 +56,19 @@ class LogisticRegressionClassifier():
         
         cost = -np.sum( y*np.log(logistic(X.dot(np.transpose(w)))) + (1-y)*np.log(1-logistic(X.dot(np.transpose(w)))) )
         cost = 1.0/len(X) * cost
-        
+
         for i in range(len(grad)):
             # slide 51
             deltaNLL = y - logistic(X.dot(w.transpose())) 
             deltaNLL = -deltaNLL.transpose().dot(X[:, i])
             grad[i] = (1.0 / len(X)) * deltaNLL
-        
+
         ### END CODE
         assert grad.shape == w.shape
         return cost, grad
 
 
-    def fit(self, X, y, w=None, lr=0.1, batch_size=16, epochs=10):
+    def fit(self, X, y, w=None, lr=0.1, batch_size=3, epochs=10):
         """
         Run mini-batch stochastic Gradient Descent for logistic regression 
         use batch_size data points to compute gradient in each step.
@@ -87,17 +90,32 @@ class LogisticRegressionClassifier():
            history: list/np.array len epochs - value of cost function after every epoch. You know for plotting
         """
         if w is None: w = np.zeros(X.shape[1])
-        history = []        
+        history = []
+        n = X.shape[0]
         ### YOUR CODE HERE 14 - 20 lines
         for i in range(epochs):
-            costGrad = self.cost_grad(X, y, w)  # compute cost and gradient of the data with weights
-            history.append(costGrad[0])  # remember the loss in iteration
-            w -= lr * costGrad[1]  # upgrade weights depending on gradient
+            X_shuffle,Y_shuffle = shuffle(X, y)
+            for j in range(n // batch_size):
+                X_subset = resample(X_shuffle, n_samples = batch_size, random_state=0)
+                y_subset = resample(Y_shuffle, n_samples = batch_size, random_state=0)
+                cost, grad = self.cost_grad(X_subset, y_subset, w)  # compute cost and gradient of the data with weights
+                history.append(cost)  # remember the loss in iteration
+                w -= lr * grad  # upgrade weights depending on gradient
+                #lr = lr * 0.99
+                print("Cost",cost)
+                print("Gradient", grad)
 
         ### END CODE
         self.w = w
         self.history = history
 
+    def fast_descent(self,X, y, w=None, reg=0, rounds=100):
+        """ Uses fancy optimizer to do the gradient descent """
+        # unstable if linear separable...
+        if w is None: w = np.zeros(X.shape[1])
+        w = scipy.optimize.minimize(lambda t: self.cost_grad(X, y, t, reg), w, jac=True,
+                                    options={'maxiter': rounds, 'disp': True})
+        return w.x
 
     def predict(self, X):
         """ Classify each data element in X
@@ -111,8 +129,12 @@ class LogisticRegressionClassifier():
         """
         pred = np.zeros(X.shape[0])
         ### YOUR CODE HERE 1 - 4 lines
+
+        z = logistic(X @ self.w)
+        predictions = np.array([0 if x < 0.5 else 1 for x in z])
         ### END CODE
-        return 0
+        assert predictions.shape == (X.shape[0],)
+        return predictions.astype('int64')
     
     def score(self, X, y):
         """ Compute model accuracy  on Data X with labels y
@@ -127,8 +149,13 @@ class LogisticRegressionClassifier():
         """
         s = 0
         ### YOUR CODE HERE 1 - 4 lines
+        predictions = self.predict(X)
+        #print(predictions)
+        #print(y)
+        #print(X.shape[0])
+        acc = np.sum(predictions == y)/X.shape[0]
         ### END CODE
-        return s
+        return acc
         
 
     
@@ -173,7 +200,8 @@ def test_fit():
     y = np.array([0, 0, 1]).astype('int64')
     lr = LogisticRegressionClassifier()
     lr.fit(X=X, y=y, w=w, epochs=10000)
-    print(lr.history)
+    print("Weights",lr.w)
+    print("Score", lr.score(X,y))
     print('Test Success')
 
     
