@@ -1,6 +1,9 @@
 import numpy as np
 import os
 from h1_util import numerical_grad_check
+from sklearn.utils import shuffle
+from sklearn.utils import resample
+
 
 def softmax(X):
     """ 
@@ -69,19 +72,6 @@ class SoftmaxClassifier():
             totalcost: Average Negative Log Likelihood of w 
             gradient: The gradient of the average Negative Log Likelihood at w 
         """
-        # cost = np.nan
-        # grad = np.zeros(W.shape)*np.nan
-        # Yk = one_in_k_encoding(y, y.shape[0]) # may help - otherwise you may remove it
-        # ### YOUR CODE HERE
-        # m = Yk.shape[0]
-        # p = softmax(X)*Yk
-        #
-        # log_likelihood = -np.log(p[range(m),])
-        # cost = np.sum(log_likelihood) / m
-        #
-        # grad = softmax(X)
-        # grad[range(m),Yk] -= 1
-        # grad = grad/m
 
         Yk = one_in_k_encoding(y, y.shape[0]) # without this it does not work
         input_size = X.shape[0]
@@ -99,7 +89,7 @@ class SoftmaxClassifier():
         return cost, grad
 
 
-    def fit(self, X, Y, W=None, lr=0.01, epochs=10, batch_size=16):
+    def fit(self, X, Y, W=None, lr=0.01, epochs=10, batch_size=2):
         """
         Run Mini-Batch Gradient Descent on data X,Y to minimize the in sample error (1/n)NLL for softmax regression.
         Printing the performance every epoch is a good idea to see if the algorithm is working
@@ -119,6 +109,17 @@ class SoftmaxClassifier():
         if W is None: W = np.zeros((X.shape[1], self.num_classes))
         history = []
         ### YOUR CODE HERE
+        n = X.shape[0]
+        for j in range(epochs):
+            X_shuff, Y_shuff = shuffle(X, Y)
+            for i in range(n // batch_size):
+                X_mini = resample(X_shuff, n_samples=batch_size, random_state=0)
+                Y_mini = resample(Y_shuff, n_samples=batch_size, random_state=0)
+                cost, grad = self.cost_grad(X_mini, Y_mini, W)
+                history.append(cost)
+                W = W - lr * grad
+                print("Cost", cost)
+                print("W", W)
         ### END CODE
         self.W = W
         self.history = history
@@ -135,6 +136,8 @@ class SoftmaxClassifier():
         """
         out = 0
         ### YOUR CODE HERE 1-4 lines
+        predictions = self.predict(X)
+        out = np.sum(predictions == Y) / X.shape[0]
         ### END CODE
         return out
 
@@ -148,6 +151,7 @@ class SoftmaxClassifier():
         """
         out = np.zeros(X.shape[0])
         ### YOUR CODE HERE - 1-4 lines
+        out = np.argmax(softmax(np.dot(X, self.W)), 1)
         ### END CODE
         return out
     
@@ -186,8 +190,20 @@ def test_grad():
     numerical_grad_check(f, w)
     print('Test Success')
 
+def test_fit():
+    print('*'*5, 'Testing  fit\n')
+    X = np.array([[1.0, 0.0], [1.0, 1.0], [2.0, 3.0]])
+    w = np.array([0.0, 0.0])
+    y = np.array([0, 2, 1])
+    lr = SoftmaxClassifier(num_classes=3)
+    lr.fit(X=X, Y=y, W=w, epochs=10)
+    print("Weights", lr.w)
+    print("Score", lr.score(X, y))
+    print('Test Success')
+
     
 if __name__ == "__main__":
     test_encoding()
     test_softmax()
     test_grad()
+    test_fit()
