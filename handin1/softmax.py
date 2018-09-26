@@ -1,6 +1,5 @@
 import numpy as np
 import os
-os.chdir('C:\\Users\Ky\Desktop\ml18\handin1')
 from h1_util import numerical_grad_check
 
 def softmax(X):
@@ -70,21 +69,32 @@ class SoftmaxClassifier():
             totalcost: Average Negative Log Likelihood of w 
             gradient: The gradient of the average Negative Log Likelihood at w 
         """
-        cost = np.nan
-        grad = np.zeros(w.shape)*np.nan
-        Yk = one_in_k_encoding(y, y.shape[0]) # may help - otherwise you may remove it
-        ### YOUR CODE HERE
-        m = Yk.shape[0]
-        p = softmax(X)*Yk
+        # cost = np.nan
+        # grad = np.zeros(W.shape)*np.nan
+        # Yk = one_in_k_encoding(y, y.shape[0]) # may help - otherwise you may remove it
+        # ### YOUR CODE HERE
+        # m = Yk.shape[0]
+        # p = softmax(X)*Yk
+        #
+        # log_likelihood = -np.log(p[range(m),])
+        # cost = np.sum(log_likelihood) / m
+        #
+        # grad = softmax(X)
+        # grad[range(m),Yk] -= 1
+        # grad = grad/m
 
-        log_likelihood = -np.log(p[range(m),])
-        cost = np.sum(log_likelihood) / m
-        
-        grad = softmax(X)
-        grad[range(m),Yk] -= 1
-        grad = grad/m
-        
-        
+        Yk = one_in_k_encoding(y, y.shape[0]) # without this it does not work
+        input_size = X.shape[0]
+        cost = np.nan
+        grad = np.zeros(W.shape) * np.nan
+        # slide 14 about softmax
+        soft = np.log(softmax(X.dot(W)))
+        # slide 19
+        cost = (-soft[Yk == 1].sum() / input_size)
+        # slide 19
+        grad = -np.transpose(X) @ (Yk - softmax(X.dot(W))) / input_size
+
+
         ### END CODE
         return cost, grad
 
