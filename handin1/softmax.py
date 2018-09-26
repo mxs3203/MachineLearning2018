@@ -1,4 +1,6 @@
 import numpy as np
+import os
+os.chdir('C:\\Users\Ky\Desktop\ml18\handin1')
 from h1_util import numerical_grad_check
 
 def softmax(X):
@@ -26,6 +28,13 @@ def softmax(X):
     """
     res = np.zeros(X.shape)
     ### YOUR CODE HERE no for loops please
+    maxs = np.max(X, axis=1)
+    diff_mat = (X.T-maxs).T
+    exp_mat = np.exp(diff_mat)
+    sum_mat = np.sum(exp_mat, axis = 1)
+    logsum = (np.log(sum_mat).T+maxs).T
+    res = np.exp((X.T-logsum).T)
+    
     ### END CODE
     return res
 
@@ -62,9 +71,20 @@ class SoftmaxClassifier():
             gradient: The gradient of the average Negative Log Likelihood at w 
         """
         cost = np.nan
-        grad = np.zeros(W.shape)*np.nan
-        Yk = one_in_k_encoding(y, self.num_classes) # may help - otherwise you may remove it
+        grad = np.zeros(w.shape)*np.nan
+        Yk = one_in_k_encoding(y, y.shape[0]) # may help - otherwise you may remove it
         ### YOUR CODE HERE
+        m = Yk.shape[0]
+        p = softmax(X)*Yk
+
+        log_likelihood = -np.log(p[range(m),])
+        cost = np.sum(log_likelihood) / m
+        
+        grad = softmax(X)
+        grad[range(m),Yk] -= 1
+        grad = grad/m
+        
+        
         ### END CODE
         return cost, grad
 
