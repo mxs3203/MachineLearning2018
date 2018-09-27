@@ -69,20 +69,18 @@ class SoftmaxClassifier():
            y: numpy array shape (n, ) int - target values in 0,1,...,k-1
            W: numpy array shape (d x K) float - weight matrix
         Returns:
-            totalcost: Average Negative Log Likelihood of w 
+            totalcost: Average Negative Log Likelihood of w
             gradient: The gradient of the average Negative Log Likelihood at w 
         """
 
-        Yk = one_in_k_encoding(y, y.shape[0]) # without this it does not work
+        Yk = one_in_k_encoding(y, self.num_classes)
         input_size = X.shape[0]
         cost = np.nan
         grad = np.zeros(W.shape) * np.nan
-        # slide 14 about softmax
         soft = np.log(softmax(X.dot(W)))
-        # slide 19
+
         cost = (-soft[Yk == 1].sum() / input_size)
-        # slide 19
-        grad = -np.transpose(X) @ (Yk - softmax(X.dot(W))) / input_size
+        grad = -np.transpose(X).dot(Yk - softmax(X.dot(W))) / input_size
 
 
         ### END CODE
@@ -151,7 +149,7 @@ class SoftmaxClassifier():
         """
         out = np.zeros(X.shape[0])
         ### YOUR CODE HERE - 1-4 lines
-        out = np.argmax(softmax(np.dot(X, self.W)), 1)
+        out = np.argmax(np.dot(X, self.W))
         ### END CODE
         return out
     
@@ -192,12 +190,11 @@ def test_grad():
 
 def test_fit():
     print('*'*5, 'Testing  fit\n')
-    X = np.array([[1.0, 0.0], [1.0, 1.0], [2.0, 3.0]])
-    w = np.array([0.0, 0.0])
-    y = np.array([0, 2, 1])
+    X = np.array([[1.0, 0.0], [1.0, 1.0], [1.0, 1.0]])
+    y = np.array([0, 1, 2])
     lr = SoftmaxClassifier(num_classes=3)
-    lr.fit(X=X, Y=y, W=w, epochs=10)
-    print("Weights", lr.w)
+    lr.fit(X=X, Y=y, epochs=1000)
+    print("Weights", lr.W)
     print("Score", lr.score(X, y))
     print('Test Success')
 

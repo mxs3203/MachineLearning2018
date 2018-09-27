@@ -86,12 +86,12 @@ def digits_visualize(epochs=1, batch_size=64, lr=0.01):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('-wine', action='store_true', default=False)
-    parser.add_argument('-digits', action='store_true', default=False)
+    parser.add_argument('-digits', action='store_true', default=True)
     parser.add_argument('-visualize', action='store_true', default=False)
     parser.add_argument('-show_digits', action='store_true', default=False)    
-    parser.add_argument('-lr', dest='lr', type=float, default=-1)
-    parser.add_argument('-bs', type=int, dest='batch_size', default=-1)
-    parser.add_argument('-epochs', dest='epochs', type=int, default=-1)    
+    parser.add_argument('-lr', dest='lr', type=float, default=0.1)
+    parser.add_argument('-bs', type=int, dest='batch_size', default=16)
+    parser.add_argument('-epochs', dest='epochs', type=int, default=1000)
     args = parser.parse_args()
     print('vars args', vars(args))
     kwargs = {}
