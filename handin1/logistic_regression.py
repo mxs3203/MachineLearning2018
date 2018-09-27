@@ -100,8 +100,8 @@ class LogisticRegressionClassifier():
                 history.append(cost)  # remember the loss in iteration
                 w -= lr * grad  # upgrade weights depending on gradient
                 #lr = lr * 0.99
-                print("Cost",cost)
-                print("Gradient", grad)
+                #print("Cost",cost)
+                #print("Gradient", grad)
 
         ### END CODE
         self.w = w
