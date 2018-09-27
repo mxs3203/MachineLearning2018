@@ -77,11 +77,10 @@ class SoftmaxClassifier():
         input_size = X.shape[0]
         cost = np.nan
         grad = np.zeros(W.shape) * np.nan
-        soft = np.log(softmax(X.dot(W)))
+        soft = np.log(softmax(np.dot(X, W)))
+        cost = -np.sum((Yk.T.dot(soft[Yk == 1])) / input_size)
 
-        cost = (-soft[Yk == 1].sum() / input_size)
         grad = -np.transpose(X).dot(Yk - softmax(X.dot(W))) / input_size
-
 
         ### END CODE
         return cost, grad
@@ -115,7 +114,7 @@ class SoftmaxClassifier():
                 Y_mini = resample(Y_shuff, n_samples=batch_size, random_state=0)
                 cost, grad = self.cost_grad(X_mini, Y_mini, W)
                 history.append(cost)
-                W = W - lr * grad
+                W -= lr * grad
                 print("Cost", cost)
                 print("W", W)
         ### END CODE
@@ -136,6 +135,8 @@ class SoftmaxClassifier():
         ### YOUR CODE HERE 1-4 lines
         predictions = self.predict(X)
         out = np.sum(predictions == Y) / X.shape[0]
+        print("Preds", predictions)
+        print("True values: ",Y)
         ### END CODE
         return out
 
@@ -149,7 +150,10 @@ class SoftmaxClassifier():
         """
         out = np.zeros(X.shape[0])
         ### YOUR CODE HERE - 1-4 lines
-        out = np.argmax(np.dot(X, self.W))
+
+        z = softmax(X @ self.W)
+        out = np.array([np.argmax(x) for x in z])
+        #out = np.dot(X, self.W)
         ### END CODE
         return out
     
@@ -190,10 +194,10 @@ def test_grad():
 
 def test_fit():
     print('*'*5, 'Testing  fit\n')
-    X = np.array([[1.0, 0.0], [1.0, 1.0], [1.0, 1.0]])
-    y = np.array([0, 1, 2])
+    X = np.array([[1.0, 0.0], [1.0, 1.0], [2.0,3.0], [1.0, 3.0]])
+    y = np.array([0, 2, 1, 2])
     lr = SoftmaxClassifier(num_classes=3)
-    lr.fit(X=X, Y=y, epochs=1000)
+    lr.fit(X=X, Y=y, epochs=1000, batch_size=2)
     print("Weights", lr.W)
     print("Score", lr.score(X, y))
     print('Test Success')

@@ -84,9 +84,9 @@ def branche_data_test(lr=0.1, batch_size=16, epochs=50):
 
 if __name__=='__main__':
     parser = ArgumentParser()
-    parser.add_argument('-lr', dest='lr', type=float, default=0.5)
-    parser.add_argument('-bs', type=int, dest='batch_size', default=5)
-    parser.add_argument('-epochs', dest='epochs', type=int, default=5)
+    parser.add_argument('-lr', dest='lr', type=float, default=0.8)
+    parser.add_argument('-bs', type=int, dest='batch_size', default=100)
+    parser.add_argument('-epochs', dest='epochs', type=int, default=100)
     args = parser.parse_args()
     print('vars args', vars(args))
     kwargs = {}

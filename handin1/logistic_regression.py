@@ -195,11 +195,11 @@ def test_grad():
 
 def test_fit():
     print('*' * 5, 'Testing  Fit')
-    X = np.array([[1.0, 0.0], [1.0, 1.0], [2.0, 3.0]])
+    X = np.array([[1.0, 0.0], [1.0, 1.0], [2.0, 3.0], [2.0, 5.0]])
     w = np.array([0.0, 0.0])
-    y = np.array([0, 0, 1]).astype('int64')
+    y = np.array([0, 0, 1,1]).astype('int64')
     lr = LogisticRegressionClassifier()
-    lr.fit(X=X, y=y, w=w, epochs=10000)
+    lr.fit(X=X, y=y, w=w, epochs=100)
     print("Weights",lr.w)
     print("Score", lr.score(X,y))
     print('Test Success')
