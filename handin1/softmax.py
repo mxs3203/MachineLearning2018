@@ -115,8 +115,8 @@ class SoftmaxClassifier():
                 cost, grad = self.cost_grad(X_mini, Y_mini, W)
                 history.append(cost)
                 W -= lr * grad
-                print("Cost", cost)
-                print("W", W)
+                #print("Cost", cost)
+                #print("W", W)
         ### END CODE
         self.W = W
         self.history = history

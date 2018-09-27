@@ -57,11 +57,9 @@ class LogisticRegressionClassifier():
         cost = -np.sum( y*np.log(logistic(X.dot(np.transpose(w)))) + (1-y)*np.log(1-logistic(X.dot(np.transpose(w)))) )
         cost = 1.0/len(X) * cost
 
-        for i in range(len(grad)):
-            # slide 51
-            deltaNLL = y - logistic(X.dot(w.transpose())) 
-            deltaNLL = -deltaNLL.transpose().dot(X[:, i])
-            grad[i] = (1.0 / len(X)) * deltaNLL
+        deltaNLL = y - logistic(X.dot(w.transpose()))
+        deltaNLL = -deltaNLL.transpose().dot(X)
+        grad = (1.0 / len(X)) * deltaNLL
 
         ### END CODE
         assert grad.shape == w.shape
