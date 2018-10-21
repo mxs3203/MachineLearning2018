@@ -50,6 +50,7 @@ def one_in_k_encoding(vec, k):
     n = vec.shape[0]
     enc = np.zeros((n, k))
     enc[np.arange(n), vec] = 1
+    print(enc)
     return enc
     
 class SoftmaxClassifier():

@@ -39,7 +39,7 @@ def wine_test(epochs=200, batch_size=16, lr=0.1):
     export_fig(fig, 'softmax_wine_cost_per_epoch.png')
     plt.show()
 
-    
+
 def digits_test(epochs=10, batch_size=32, lr=0.05):
     print('digits test: params - epochs {0}, batch_size: {1}, learning rate: {2}'.format(epochs, batch_size, lr))
     sc = SoftmaxClassifier(num_classes=10)
@@ -67,13 +67,13 @@ def show_digits(grid=(4, 4)):
             axes[i][j].imshow(X_train[ridx[i][j],].reshape(28, 28), cmap=plt.get_cmap('bone'))
             axes[i][j].set_title('{0}'.format(y_train[ridx[i][j]]))
             axes[i][j].axis('off')
-    plt.show()        
-    
-    
+    plt.show()
+
+
 def digits_visualize(epochs=1, batch_size=64, lr=0.01):
     sc = SoftmaxClassifier(num_classes=10)
     X_train, y_train = load_digits_train_data()
-    sc.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, lr=lr)    
+    sc.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, lr=lr)
     w = sc.W
     rs = w.reshape(28, 28, 10, order='F')
     rs2 = np.transpose(rs, axes=[1,0,2])
@@ -89,8 +89,8 @@ if __name__ == '__main__':
     parser.add_argument('-digits', action='store_true', default=True)
     parser.add_argument('-visualize', action='store_true', default=True)
     parser.add_argument('-show_digits', action='store_true', default=True)
-    parser.add_argument('-lr', dest='lr', type=float, default=0.1)
-    parser.add_argument('-bs', type=int, dest='batch_size', default=100)
+    parser.add_argument('-lr', dest='lr', type=float, default=0.42)
+    parser.add_argument('-bs', type=int, dest='batch_size', default=666)
     parser.add_argument('-epochs', dest='epochs', type=int, default=100)
     args = parser.parse_args()
     print('vars args', vars(args))
@@ -100,7 +100,7 @@ if __name__ == '__main__':
     if args.batch_size >=0:
         kwargs['batch_size'] = args.batch_size
     if args.epochs >=0:
-        kwargs['epochs'] = args.epochs            
+        kwargs['epochs'] = args.epochs
     if args.wine:
         wine_test(**kwargs)
     if args.digits:
