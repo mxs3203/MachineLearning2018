@@ -163,29 +163,33 @@ class NetClassifier():
         W2 = params['W2']
         b2 = params['b2']
         labels = one_in_k_encoding(y, W2.shape[1]) # shape n x k
-
+        #print("W1",W1)
+        #print("W2", W2)
         # One data point: O(  # weights and biases)
         ### YOUR CODE HERE - FORWARD PASS - compute regularized cost and store relevant values for backprop
-        activation = relu(X.dot(W1) + b1)
-        Y_hat = softmax(activation.dot(W2) + b2)
+
+        a1 = relu(X.dot(W1) + b1)
+        z2 = a1.dot(W2) + b2
+        Y_hat = softmax(z2)
+        print("Y hat", Y_hat)
 
         ### END CODE
         
         ### YOUR CODE HERE - BACKWARDS PASS - compute derivatives of all (regularized) weights and bias, store them in d_w1, d_w2' d_w2, d_b1, d_b2
-        delta2 = Y_hat - labels
-        delta1 = (delta2).dot(W2.T) * activation * (1 - activation)
-        W2 -= activation.T.dot(delta2)
-        b2 -= (delta2).sum(axis=0)
 
-        W1 -= X.T.dot(delta1)
-        b1 -= delta1.sum(axis=0)
+        delta3 = Y_hat
+        dW2 = (a1.T).dot(delta3)
+        db2 = np.sum(delta3, axis=0, keepdims=True)
+        delta2 = delta3.dot(W2.T) * (-labels + Y_hat)
+        dW1 = np.dot(X.T, delta2)
+        db1 = np.sum(delta2, axis=0)
 
-        cost = np.sum(-labels * np.log(Y_hat))
+        cost = 1/len(X) * (-np.log(Y_hat[range(len(X)), y])).sum()
         ### END CODE
         # the return signature
-        return cost, {'d_w1': W1, 'd_w2': W2, 'd_b1': b1, 'd_b2': b2}
+        return cost, {'d_w1': dW1, 'd_w2': dW2, 'd_b1': db1, 'd_b2': db2}
         
-    def fit(self, X_train, y_train, X_val, y_val, init_params, batch_size=32, lr=0.1, reg=1e-4, epochs=30):
+    def fit(self, X_train, y_train, X_val, y_val, init_params, batch_size=5, lr=0.1, reg=1e-4, epochs=30):
         """ Run Mini-Batch Gradient Descent on data X, Y to minimize the in sample error (1/n)Cross Entropy for Neural Net classification
         Printing the performance every epoch is a good idea to see if the algorithm is working
     
@@ -216,8 +220,8 @@ class NetClassifier():
                 X_mini = resample(X_shuff, n_samples=batch_size, random_state=0)
                 Y_mini = resample(Y_shuff, n_samples=batch_size, random_state=0)
                 cost_dictionary = self.cost_grad(X_mini, Y_mini, params={'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2})
-                W1 += -lr * cost_dictionary[1]["d_w1"] * reg
-                W2 += -lr * cost_dictionary[1]["d_w2"] * reg
+                W1 += -lr * cost_dictionary[1]["d_w1"]
+                W2 += -lr * cost_dictionary[1]["d_w2"]
                 b1 += -lr * cost_dictionary[1]["d_b1"]
                 b2 += -lr * cost_dictionary[1]["d_b2"]
 
@@ -263,7 +267,7 @@ def test_grad():
     print(stars, 'Testing  Cost and Gradient Together')
     input_dim = 7
     hidden_size = 1
-    output_size = 3
+    output_size = 4 # this was 3
     nc = NetClassifier()
     params = get_init_params(input_dim, hidden_size, output_size)
 
@@ -296,6 +300,7 @@ if __name__ == '__main__':
     nc = NetClassifier()
     params = get_init_params(input_dim, hidden_size, output_size)
     X = np.random.randn(batch_size, input_dim)
+    print("Input X", X)
     Y = np.array([0, 1, 2, 0, 1, 2, 0])
     nc.cost_grad(X, Y, params, reg=0)
     test_grad()
