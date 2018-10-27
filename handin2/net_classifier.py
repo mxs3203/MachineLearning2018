@@ -131,10 +131,10 @@ class NetClassifier():
 
         ### END CODE
         return pred
-     
+
     def score(self, X, y, params=None):
         """ Compute accuracy of model on data X with labels y
-        
+
         Args:
             X: np.array shape n, d
             y: np.array shape n, 1
@@ -147,8 +147,8 @@ class NetClassifier():
             params = self.params
         acc = None
         ### YOUR CODE HERE
-        y_hat = self.predict(X)
-        acc = np.sum(y == y_hat) / float(y)
+        y_hat = np.argmax(self.predict(X), axis=1)
+        acc = np.mean(y == y_hat)
         ### END CODE
         return acc
     
@@ -193,7 +193,6 @@ class NetClassifier():
         
         ### YOUR CODE HERE - BACKWARDS PASS - compute derivatives of all (regularized) weights and bias, store them in d_w1, d_w2' d_w2, d_b1, d_b2
 
-        R = reg * (np.sum(np.square(W1.copy())) + np.sum(np.square(W2.copy())))
         cost = 1 / len(X) * -np.sum(labels * np.log(Y_hat))
 
         delta3 = -labels+Y_hat
@@ -246,15 +245,19 @@ class NetClassifier():
 
                 cost_dictionary = self.cost_grad(X_mini, Y_mini, params={'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2})
 
-                W1 += -lr * cost_dictionary[1]["d_w1"]
-                W2 += -lr * cost_dictionary[1]["d_w2"]
+                R = reg * (np.sum(np.square(W1.copy())) + np.sum(np.square(W2.copy())))
+
+                W1 += -lr * cost_dictionary[1]["d_w1"] * reg
+                W2 += -lr * cost_dictionary[1]["d_w2"] * reg
                 b1 += -lr * cost_dictionary[1]["d_b1"]
                 b2 += -lr * cost_dictionary[1]["d_b2"]
+
                 self.params = {'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2}
+                cost_val = self.cost_grad(X_val, y_val,params={'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2})
                 self.history = {
-                    'train_loss': cost_dictionary[0],
-                    'train_acc': self.score(X_mini, X_mini),
-                    'val_loss': 0.2,
+                    'train_loss': cost_dictionary[0] + R,
+                    'train_acc': self.score(X_mini, Y_mini),
+                    'val_loss': cost_val[0] + R,
                     'val_acc': self.score(X_val, y_val),
                 }
                 print(self.history)
