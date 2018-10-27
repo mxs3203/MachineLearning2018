@@ -4,7 +4,7 @@ import urllib
 import urllib.request
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-from net_classifier import NetClassifier, get_init_params
+from handin2.net_classifier import *
 
 def export_fig(fig, name):
     result_path = os.path.join(os.getcwd(), 'results')
@@ -45,7 +45,7 @@ def digits_test(hidden_size=256, epochs=50, batch_size=16, lr=0.1, reg=1e-4):
     net = NetClassifier()
     digits, labels = load_digits_train_data()
     digits_train, digits_val, labels_train, labels_val = train_test_split(digits, labels, test_size=0.15, random_state=42)
-    init_params = get_init_params(digits.shape[1], hidden_size, 10)    
+    init_params = get_init_params(digits.shape[1], hidden_size, 10)
     net.fit(digits_train, labels_train, digits_val, labels_val, init_params, batch_size=batch_size, epochs=epochs, lr=lr, reg=reg)
     hist = net.history
     print('in sample accuracy', net.score(digits, labels))

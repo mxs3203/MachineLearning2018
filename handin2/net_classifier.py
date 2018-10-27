@@ -14,6 +14,13 @@ def one_in_k_encoding(vec, k):
     enc[np.arange(n), vec] = 1
     return enc
 
+def relu_derivative(x):
+    return 1. * (x > 0)
+    # x[x <= 0] = 0
+    # x[x > 0] = 1
+    # return x
+
+
 def softmax(X):
     """ 
     You can take this from handin I
@@ -88,7 +95,8 @@ def get_init_params(input_dim, hidden_size, output_size):
     b2 = np.zeros((1, output_size))
     return {'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2}
 
-  
+
+
 class NetClassifier():
     
     def __init__(self):
@@ -108,11 +116,17 @@ class NetClassifier():
         if params is None:
             params = self.params
         pred = None
-        ### YOUR CODE HERE
-        z1 = relu(X.dot(params['W1']) + params['b1'])
-        z2 = z1.dot(params['W2']) + params['b2']
-        pred = softmax(z2)
 
+        W1 = params['W1']
+        b1 = params['b1']
+        W2 = params['W2']
+        b2 = params['b2']
+        ### YOUR CODE HERE
+
+        z1 = X.dot(W1) + b1
+        a1 = relu(z1)
+        z2 = a1.dot(W2) + b2
+        pred = softmax(z2)
 
         ### END CODE
         return pred
@@ -177,39 +191,21 @@ class NetClassifier():
         
         ### YOUR CODE HERE - BACKWARDS PASS - compute derivatives of all (regularized) weights and bias, store them in d_w1, d_w2' d_w2, d_b1, d_b2
 
+        R = reg * (np.sum(np.square(W1)) + np.sum(np.square(W2)))
+        cost = 1 / len(X) * -np.sum(labels * np.log(Y_hat)) + R
+        delta3 = Y_hat
+        delta3[range(X.shape[0]), y] -= 1
 
-        delta2 = Y_hat - labels
-
-        # delta2[range(len(X)), y] -= 1 # this or Y_hat - labels line before
-        # delta1 = delta2.dot(W2.T) * (1 - a1) # or  (1 - np.power(a1, 2)) ?
-        # print(delta1)
-        #
-        #
-        # print(delta1)
-        # dW2 = a1.T.dot(delta2)
-        # db2 = np.sum(delta2, axis=0)
-        # dW1 = np.dot(X.T, delta2)
-        # db1 = np.sum(delta1, axis=0)
-        # # something is wrong with db1 shape and I assume it is because of derivate 0 or 1?
-        # print(db1)
-
-        delta1 = np.zeros(Y_hat.shape)
-        for i in range(len(Y_hat)):
-            delta1[i] = (softmax(Y_hat)[i])
-            delta1[i, y[i]] -= 1
-
-        dW2 = a1.T.dot(delta2)
-        db2 = np.sum(delta2, axis=0)
+        dW2 = (a1.T).dot(delta3)
+        db2 = np.sum(delta3, axis=0, keepdims=True)
+        delta2 = delta3.dot(W2.T) * relu_derivative(a1)
         dW1 = np.dot(X.T, delta2)
-        db1 = np.sum(delta1, axis=0)
+        db1 = np.sum(delta2, axis=0)
 
-        print(delta1)
-        cost = 1/len(X) * (-np.log(Y_hat[range(len(X)), y])).sum()
-        cost = np.sum(-labels * np.log(Y_hat))
-        print(cost)
         ### END CODE
         # the return signature
         return cost, {'d_w1': dW1, 'd_w2': dW2, 'd_b1': db1, 'd_b2': db2}
+
 
 
     def fit(self, X_train, y_train, X_val, y_val, init_params, batch_size=30, lr=0.1, reg=1e-4, epochs=30):
@@ -230,7 +226,8 @@ class NetClassifier():
            params: dict with keys {W1, W2, b1, b2} parameters for neural net
            history: dict:{keys: train_loss, train_acc, val_loss, val_acc} each an np.array of size epochs of the the given cost after every epoch
         """
-        n = X.shape[0]
+
+        n = X_train.shape[0]
         W1 = init_params['W1']
         b1 = init_params['b1']
         W2 = init_params['W2']
@@ -242,25 +239,26 @@ class NetClassifier():
             for j in range(n // batch_size):
                 X_mini = resample(X_shuff, n_samples=batch_size, random_state=0)
                 Y_mini = resample(Y_shuff, n_samples=batch_size, random_state=0)
+
                 cost_dictionary = self.cost_grad(X_mini, Y_mini, params={'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2})
 
                 W1 += -lr * cost_dictionary[1]["d_w1"]
                 W2 += -lr * cost_dictionary[1]["d_w2"]
                 b1 += -lr * cost_dictionary[1]["d_b1"]
                 b2 += -lr * cost_dictionary[1]["d_b2"]
-
-                R = reg / 2 * (np.sum(np.square(W1)) + np.sum(np.square(W2)))
+                self.params = {'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2}
                 self.history = {
                     'train_loss': cost_dictionary[0],
-                    'train_acc': self.score(X_mini, Y_mini),
+                    'train_acc': self.score(X_mini, X_mini),
                     'val_loss': 0.2,
-                    'val_acc': 0.2,
+                    'val_acc': self.score(X_val, y_val),
                 }
+                print(self.history)
         ### END CODE
         # hist dict should look like this with something different than none
 
         ## self.params should look like this with something better than none, i.e. the best parameters found.
-        self.params = {'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2}
+
     
         
 
@@ -282,8 +280,8 @@ def numerical_grad_check(f, x, key):
         cminus, _ = f(x)
         x[dim] = tmp
         num_grad = (cplus-cminus)/(2*h)
-        # print('cplus cminus', cplus, cminus, cplus-cminus)
-        # print('dim, grad, num_grad, grad-num_grad', dim, grad[dim], num_grad, grad[dim]-num_grad)
+        #print('cplus cminus', cplus, cminus, cplus-cminus)
+        #print('dim, grad, num_grad, grad-num_grad', dim, grad[dim], num_grad, grad[dim]-num_grad)
         assert np.abs(num_grad - grad[dim]) < eps, 'numerical gradient error index {0}, numerical gradient {1}, computed gradient {2}'.format(dim, num_grad, grad[dim])
         it.iternext()
 
@@ -292,7 +290,7 @@ def test_grad():
     print(stars, 'Testing  Cost and Gradient Together')
     input_dim = 7
     hidden_size = 1
-    output_size = 4 # this was 3
+    output_size = 3
     nc = NetClassifier()
     params = get_init_params(input_dim, hidden_size, output_size)
 
