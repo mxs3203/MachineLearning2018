@@ -185,7 +185,8 @@ class NetClassifier():
         ### YOUR CODE HERE - FORWARD PASS - compute regularized cost and store relevant values for backprop
 
         a1 = relu(X.dot(W1) + b1)
-        Y_hat = softmax(a1.dot(W2) + b2)
+        a2 = a1.dot(W2)+b2
+        Y_hat = softmax(a2)
 
         ### END CODE
         
@@ -193,11 +194,11 @@ class NetClassifier():
 
         R = reg * (np.sum(np.square(W1)) + np.sum(np.square(W2)))
         cost = 1 / len(X) * -np.sum(labels * np.log(Y_hat)) + R
-        delta3 = Y_hat
-        delta3[range(X.shape[0]), y] -= 1
+        delta3 = Y_hat -labels
+#        delta3[range(X.shape[0]), y] -= 1
 
         dW2 = (a1.T).dot(delta3)
-        db2 = np.sum(delta3, axis=0, keepdims=True)
+        db2 = np.sum(delta3, axis=0, keepdims=True)/len(X)
         delta2 = delta3.dot(W2.T) * relu_derivative(a1)
         dW1 = np.dot(X.T, delta2)
         db1 = np.sum(delta2, axis=0)
@@ -282,6 +283,7 @@ def numerical_grad_check(f, x, key):
         num_grad = (cplus-cminus)/(2*h)
         #print('cplus cminus', cplus, cminus, cplus-cminus)
         #print('dim, grad, num_grad, grad-num_grad', dim, grad[dim], num_grad, grad[dim]-num_grad)
+        print("d:",grad[dim]/num_grad)
         assert np.abs(num_grad - grad[dim]) < eps, 'numerical gradient error index {0}, numerical gradient {1}, computed gradient {2}'.format(dim, num_grad, grad[dim])
         it.iternext()
 
