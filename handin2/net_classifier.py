@@ -16,6 +16,7 @@ def one_in_k_encoding(vec, k):
 
 def relu_derivative(x):
     return 1. * (x > 0)
+    # This is the same as :
     # x[x <= 0] = 0
     # x[x > 0] = 1
     # return x
@@ -147,7 +148,7 @@ class NetClassifier():
         acc = None
         ### YOUR CODE HERE
         y_hat = self.predict(X)
-        acc = np.sum(y == y_hat, axis=0) / float(X.shape[0])
+        acc = np.sum(y == y_hat) / float(y)
         ### END CODE
         return acc
     
@@ -192,16 +193,19 @@ class NetClassifier():
         
         ### YOUR CODE HERE - BACKWARDS PASS - compute derivatives of all (regularized) weights and bias, store them in d_w1, d_w2' d_w2, d_b1, d_b2
 
-        R = reg * (np.sum(np.square(W1)) + np.sum(np.square(W2)))
+        R = reg * (np.sum(np.square(W1.copy())) + np.sum(np.square(W2.copy())))
         cost = 1 / len(X) * -np.sum(labels * np.log(Y_hat)) + R
-        delta3 = Y_hat -labels
-#        delta3[range(X.shape[0]), y] -= 1
 
-        dW2 = (a1.T).dot(delta3)
+        delta3 = Y_hat.copy()
+        delta3[range(X.shape[0]), y] -= 1
+
+
+        dW2 = a1.T.dot(delta3) * reg
         db2 = np.sum(delta3, axis=0, keepdims=True)/len(X)
-        delta2 = delta3.dot(W2.T) * relu_derivative(a1)
-        dW1 = np.dot(X.T, delta2)
-        db1 = np.sum(delta2, axis=0)
+        delta2 = (delta3.dot(W2.T) * relu_derivative(a1))
+
+        dW1 = X.T.dot(delta2) * reg
+        db1 = np.sum(delta2, axis=0, keepdims=True)/len(X)
 
         ### END CODE
         # the return signature
@@ -283,7 +287,6 @@ def numerical_grad_check(f, x, key):
         num_grad = (cplus-cminus)/(2*h)
         #print('cplus cminus', cplus, cminus, cplus-cminus)
         #print('dim, grad, num_grad, grad-num_grad', dim, grad[dim], num_grad, grad[dim]-num_grad)
-        print("d:",grad[dim]/num_grad)
         assert np.abs(num_grad - grad[dim]) < eps, 'numerical gradient error index {0}, numerical gradient {1}, computed gradient {2}'.format(dim, num_grad, grad[dim])
         it.iternext()
 
@@ -305,17 +308,18 @@ def test_grad():
     numerical_grad_check(f, params['b2'], 'd_b2')
     print(stars, 'Test Success', stars)
     
-    print('\n', stars, 'Test Cost and Gradient of w2', stars)
-    numerical_grad_check(f, params['W2'], 'd_w2')
-    print('Test Success')
-    
     print('\n', stars, 'Test Cost and Gradient of b1', stars)
     numerical_grad_check(f, params['b1'], 'd_b1')
     print('Test Success')
-    
+
     print('\n', stars, 'Test Cost and Gradient of w1', stars)
     numerical_grad_check(f, params['W1'], 'd_w1')
     print('Test Success')
+
+    print('\n', stars, 'Test Cost and Gradient of w2', stars)
+    numerical_grad_check(f, params['W2'], 'd_w2')
+    print('Test Success')
+
 
 if __name__ == '__main__':
     input_dim = 3
