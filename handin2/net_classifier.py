@@ -177,21 +177,28 @@ class NetClassifier():
         
         ### YOUR CODE HERE - BACKWARDS PASS - compute derivatives of all (regularized) weights and bias, store them in d_w1, d_w2' d_w2, d_b1, d_b2
 
-        delta2 = Y_hat -labels
-        #delta2[range(len(X)), y] -= 1 # this or Y_hat - labels line before
 
-        delta1 = delta2.dot(W2.T) * a1 * (1 - a1) # or  (1 - np.power(a1, 2)) ?
+        delta2 = Y_hat - labels
+        delta2[range(len(X)), y] -= 1 # this or Y_hat - labels line before
+        delta1 = delta2.dot(W2.T) * 1 * (1 - a1) # or  (1 - np.power(a1, 2)) ?
+        print(delta1)
+
+
         print(delta1)
         dW2 = a1.T.dot(delta2)
         db2 = np.sum(delta2, axis=0)
-
         dW1 = np.dot(X.T, delta2)
-
         db1 = np.sum(delta1, axis=0)
         # something is wrong with db1 shape and I assume it is because of derivate 0 or 1?
         print(db1)
-        cost = 1/len(X) * (-np.log(Y_hat[range(len(X)), y])).sum()
 
+        # exp_scores = np.exp(Y_hat)
+        # sums = np.sum(exp_scores, axis=1)
+        # DlossDscores = exp_scores / (len(X) * np.matrix(sums).T)
+        # DlossDscores[range(len(X)), y] -= (1.0 / len(X))
+
+        cost = 1/len(X) * (-np.log(Y_hat[range(len(X)), y])).sum()
+        print(cost)
         ### END CODE
         # the return signature
         return cost, {'d_w1': dW1, 'd_w2': dW2, 'd_b1': db1, 'd_b2': db2}
