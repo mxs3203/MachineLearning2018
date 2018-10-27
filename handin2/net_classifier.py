@@ -153,7 +153,7 @@ class NetClassifier():
         return acc
     
     @staticmethod
-    def cost_grad(X, y, params, reg=0.0):
+    def cost_grad(X, y, params, reg=1.0):
         """ Compute cost and gradient of neural net on data X with labels y using weight decay parameter c
         You should implement a forward pass and store the intermediate results 
         and the implement the backwards pass using the intermediate stored results
@@ -184,8 +184,8 @@ class NetClassifier():
         labels = one_in_k_encoding(y, W2.shape[1]) # shape n x k
         # One data point: O(  # weights and biases)
         ### YOUR CODE HERE - FORWARD PASS - compute regularized cost and store relevant values for backprop
-
-        a1 = relu(X.dot(W1) + b1)
+        a0 = X.dot(W1) + b1
+        a1 = relu(a0)
         a2 = a1.dot(W2)+b2
         Y_hat = softmax(a2)
 
@@ -194,17 +194,16 @@ class NetClassifier():
         ### YOUR CODE HERE - BACKWARDS PASS - compute derivatives of all (regularized) weights and bias, store them in d_w1, d_w2' d_w2, d_b1, d_b2
 
         R = reg * (np.sum(np.square(W1.copy())) + np.sum(np.square(W2.copy())))
-        cost = 1 / len(X) * -np.sum(labels * np.log(Y_hat)) + R
+        cost = 1 / len(X) * -np.sum(labels * np.log(Y_hat))
 
-        delta3 = Y_hat.copy()
-        delta3[range(X.shape[0]), y] -= 1
+        delta3 = -labels+Y_hat
 
 
-        dW2 = a1.T.dot(delta3) * reg
+        dW2 = np.dot(a1.T,delta3)/len(X)
         db2 = np.sum(delta3, axis=0, keepdims=True)/len(X)
-        delta2 = (delta3.dot(W2.T) * relu_derivative(a1))
+        delta2 = (delta3.dot(W2.T) * relu_derivative(a0))
 
-        dW1 = X.T.dot(delta2) * reg
+        dW1 = X.T.dot(delta2)/len(X)
         db1 = np.sum(delta2, axis=0, keepdims=True)/len(X)
 
         ### END CODE
@@ -287,6 +286,7 @@ def numerical_grad_check(f, x, key):
         num_grad = (cplus-cminus)/(2*h)
         #print('cplus cminus', cplus, cminus, cplus-cminus)
         #print('dim, grad, num_grad, grad-num_grad', dim, grad[dim], num_grad, grad[dim]-num_grad)
+        print("d:",grad[dim]/num_grad)
         assert np.abs(num_grad - grad[dim]) < eps, 'numerical gradient error index {0}, numerical gradient {1}, computed gradient {2}'.format(dim, num_grad, grad[dim])
         it.iternext()
 
@@ -312,12 +312,13 @@ def test_grad():
     numerical_grad_check(f, params['b1'], 'd_b1')
     print('Test Success')
 
-    print('\n', stars, 'Test Cost and Gradient of w1', stars)
-    numerical_grad_check(f, params['W1'], 'd_w1')
-    print('Test Success')
 
     print('\n', stars, 'Test Cost and Gradient of w2', stars)
     numerical_grad_check(f, params['W2'], 'd_w2')
+    print('Test Success')
+
+    print('\n', stars, 'Test Cost and Gradient of w1', stars)
+    numerical_grad_check(f, params['W1'], 'd_w1')
     print('Test Success')
 
 
