@@ -179,25 +179,33 @@ class NetClassifier():
 
 
         delta2 = Y_hat - labels
-        delta2[range(len(X)), y] -= 1 # this or Y_hat - labels line before
-        delta1 = delta2.dot(W2.T) * 1 * (1 - a1) # or  (1 - np.power(a1, 2)) ?
-        print(delta1)
 
+        # delta2[range(len(X)), y] -= 1 # this or Y_hat - labels line before
+        # delta1 = delta2.dot(W2.T) * (1 - a1) # or  (1 - np.power(a1, 2)) ?
+        # print(delta1)
+        #
+        #
+        # print(delta1)
+        # dW2 = a1.T.dot(delta2)
+        # db2 = np.sum(delta2, axis=0)
+        # dW1 = np.dot(X.T, delta2)
+        # db1 = np.sum(delta1, axis=0)
+        # # something is wrong with db1 shape and I assume it is because of derivate 0 or 1?
+        # print(db1)
 
-        print(delta1)
+        delta1 = np.zeros(Y_hat.shape)
+        for i in range(len(Y_hat)):
+            delta1[i] = (softmax(Y_hat)[i])
+            delta1[i, y[i]] -= 1
+
         dW2 = a1.T.dot(delta2)
         db2 = np.sum(delta2, axis=0)
         dW1 = np.dot(X.T, delta2)
         db1 = np.sum(delta1, axis=0)
-        # something is wrong with db1 shape and I assume it is because of derivate 0 or 1?
-        print(db1)
 
-        # exp_scores = np.exp(Y_hat)
-        # sums = np.sum(exp_scores, axis=1)
-        # DlossDscores = exp_scores / (len(X) * np.matrix(sums).T)
-        # DlossDscores[range(len(X)), y] -= (1.0 / len(X))
-
+        print(delta1)
         cost = 1/len(X) * (-np.log(Y_hat[range(len(X)), y])).sum()
+        cost = np.sum(-labels * np.log(Y_hat))
         print(cost)
         ### END CODE
         # the return signature
@@ -243,7 +251,7 @@ class NetClassifier():
 
                 R = reg / 2 * (np.sum(np.square(W1)) + np.sum(np.square(W2)))
                 self.history = {
-                    'train_loss': cost_dictionary[0] * R,
+                    'train_loss': cost_dictionary[0],
                     'train_acc': self.score(X_mini, Y_mini),
                     'val_loss': 0.2,
                     'val_acc': 0.2,
