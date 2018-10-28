@@ -103,7 +103,19 @@ class NetClassifier():
     def __init__(self):
         """ Trivial Init """
         self.params = None
-        self.hist = None
+
+        self.hist = []
+        self.hist = {
+            'train_loss': [],
+            'train_acc': [],
+            'val_loss': [],
+            'val_acc': [],
+        }
+
+        self.val_loss = []
+        self.train_loss = []
+        self.train_acc = []
+        self.val_acc = []
 
     def predict(self, X, params=None):
         """ Compute class prediction for all data points in class X
@@ -155,28 +167,28 @@ class NetClassifier():
     @staticmethod
     def cost_grad(X, y, params, reg=1.0):
         """ Compute cost and gradient of neural net on data X with labels y using weight decay parameter c
-        You should implement a forward pass and store the intermediate results 
+        You should implement a forward pass and store the intermediate results
         and the implement the backwards pass using the intermediate stored results
-        
+
         Use the derivative for cost as a function for input to softmax as derived above
-        
+
         Args:
             X: np.array shape n, self.input_size
             y: np.array shape n, 1
             params: dict with keys (W1, W2, b1, b2)
             reg: float - weight decay regularization weight
             params: dict of params to use for the computation
-        
-        Returns 
+
+        Returns
             cost: scalar - average cross entropy cost
             dict with keys
             d_w1: np.array shape w1.shape, entry d_w1[i, j] = \partial cost/ \partial w1[i, j]
             d_w2: np.array shape w2.shape, entry d_w2[i, j] = \partial cost/ \partial w2[i, j]
             d_b1: np.array shape b1.shape, entry d_b1[1, j] = \partial cost/ \partial b1[1, j]
             d_b2: np.array shape b2.shape, entry d_b2[1, j] = \partial cost/ \partial b2[1, j]
-            
+
         """
-        
+
         W1 = params['W1']
         b1 = params['b1']
         W2 = params['W2']
@@ -254,17 +266,29 @@ class NetClassifier():
 
                 self.params = {'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2}
                 cost_val = self.cost_grad(X_val, y_val,params={'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2})
-                self.history = {
+                self.val_loss.append(cost_val[0])
+                history = {
                     'train_loss': cost_dictionary[0] + R,
                     'train_acc': self.score(X_mini, Y_mini),
-                    'val_loss': cost_val[0] + R,
+                    'val_loss': cost_val[0],
                     'val_acc': self.score(X_val, y_val),
                 }
-                print(self.history)
-        ### END CODE
-        # hist dict should look like this with something different than none
+                print(history)
+                self.hist['train_loss'].append(history['train_loss'])
+                self.hist['train_acc'].append(history['train_acc'])
+                self.hist['val_loss'].append(history['val_loss'])
+                self.hist['val_acc'].append(history['val_acc'])
+                # Every 5th run excluding the first
+                if i > 1 and i % 5 == 0:
+                    # take a look at validation set improvment in loss
+                    improvmnet = np.abs(self.val_loss[len(self.val_loss)-1] - (cost_val[0]))
+                    print(improvmnet)
+                    print("Stop in iteration:", i)
+                    # if it is not significant we are done
+                    if improvmnet < 1e-6:
+                        return self.params
 
-        ## self.params should look like this with something better than none, i.e. the best parameters found.
+        ### END CODE
 
     
         

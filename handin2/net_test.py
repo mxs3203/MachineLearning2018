@@ -41,31 +41,32 @@ def load_digits_test_data():
     return load_au_data(filename)
     
 
-def digits_test(hidden_size=256, epochs=50, batch_size=16, lr=0.1, reg=1e-4):
+def digits_test(hidden_size=256, epochs=50, batch_size=16, lr=0.1, reg=1e-4): # 16 batch
     net = NetClassifier()
     digits, labels = load_digits_train_data()
     digits_train, digits_val, labels_train, labels_val = train_test_split(digits, labels, test_size=0.15, random_state=42)
     init_params = get_init_params(digits.shape[1], hidden_size, 10)
     net.fit(digits_train, labels_train, digits_val, labels_val, init_params, batch_size=batch_size, epochs=epochs, lr=lr, reg=reg)
-    hist = net.history
+
     print('in sample accuracy', net.score(digits, labels))
     test_digits, test_labels = load_digits_test_data()
     print('test sample accuracy', net.score(test_digits, test_labels))
+
+
     fig, ax = plt.subplots(1, 2, figsize=(20, 16))  
-    idx = list(range(hist['train_loss'].shape[0]))
-    ax[0].plot(idx, hist['train_loss'], 'r-', linewidth=2, label='train loss')
-    ax[0].plot(idx, hist['val_loss'], 'b-', linewidth=2, label='val loss')
+    idx = list(range(0, len(net.hist['train_loss'])))
+    ax[0].plot(idx, net.hist['train_loss'], 'r-', linewidth=2, label='train loss')
+    ax[0].plot(idx, net.hist['val_loss'], 'b-', linewidth=2, label='val loss')
     ax[0].set_title('Loss Per Epoch')
     ax[0].set_ylabel('Loss')
     ax[0].set_xlabel('Epoch')
-    ax[0].set_ylim([0, 1])
-    ax[1].plot(idx, hist['train_acc'], 'r-', linewidth=2, label='train acc')
-    ax[1].plot(idx, hist['val_acc'], 'b-', linewidth=2, label='val acc')
+    ax[1].plot(idx, net.hist['train_acc'], 'r-', linewidth=2, label='train acc')
+    ax[1].plot(idx, net.hist['val_acc'], 'b-', linewidth=2, label='val acc')
     ax[1].set_title('Acccuracy Per Epoch')
-    ax[1].set_ylim([0.5, 1])
     ax[1].set_ylabel('Accuracy')
     ax[1].set_xlabel('Epoch')
     plt.legend()
+    plt.show()
     export_fig(fig, 'epoch_plots.png')
     return net
 
