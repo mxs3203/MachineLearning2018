@@ -41,7 +41,7 @@ def load_digits_test_data():
     return load_au_data(filename)
     
 
-def digits_test(hidden_size=256, epochs=50, batch_size=16, lr=0.1, reg=1e-4): # 16 batch
+def digits_test(hidden_size=256, epochs=100, batch_size=16, lr=0.1, reg=1e-4): # 16 batch
     net = NetClassifier()
     digits, labels = load_digits_train_data()
     digits_train, digits_val, labels_train, labels_val = train_test_split(digits, labels, test_size=0.15, random_state=42)
@@ -67,7 +67,7 @@ def digits_test(hidden_size=256, epochs=50, batch_size=16, lr=0.1, reg=1e-4): # 
     ax[1].set_xlabel('Epoch')
     plt.legend()
     plt.show()
-    export_fig(fig, 'epoch_plots.png')
+    export_fig(fig, 'results.png')
     return net
 
 if __name__ == '__main__':

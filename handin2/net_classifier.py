@@ -1,6 +1,8 @@
 import numpy as np
 from sklearn.utils import shuffle
 from sklearn.utils import resample
+from termcolor import colored
+
 
 def one_in_k_encoding(vec, k):
     """ One-in-k encoding of vector to k classes 
@@ -248,9 +250,14 @@ class NetClassifier():
         W2 = init_params['W2']
         b2 = init_params['b2']
 
+        validation_gradient = 0
+        cost_dictionary = None
+        R = 0
+
         ### YOUR CODE HERE
         for i in range(epochs):
             X_shuff, Y_shuff = shuffle(X_train, y_train)
+            epoch_loss = []
             for j in range(n // batch_size):
                 X_mini = resample(X_shuff, n_samples=batch_size, random_state=0)
                 Y_mini = resample(Y_shuff, n_samples=batch_size, random_state=0)
@@ -261,32 +268,38 @@ class NetClassifier():
 
                 W1 += -lr * cost_dictionary[1]["d_w1"] * reg
                 W2 += -lr * cost_dictionary[1]["d_w2"] * reg
-                b1 += -lr * cost_dictionary[1]["d_b1"]
-                b2 += -lr * cost_dictionary[1]["d_b2"]
+                b1 += -lr * cost_dictionary[1]["d_b1"] * reg
+                b2 += -lr * cost_dictionary[1]["d_b2"] * reg
 
                 self.params = {'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2}
-                cost_val = self.cost_grad(X_val, y_val,params={'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2})
-                self.val_loss.append(cost_val[0])
+                validation_gradient = self.cost_grad(X_val, y_val, params={'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2})
+
+                self.val_loss.append(validation_gradient[0])
+                epoch_loss.append(cost_dictionary[0] + R)
                 history = {
                     'train_loss': cost_dictionary[0] + R,
                     'train_acc': self.score(X_mini, Y_mini),
-                    'val_loss': cost_val[0],
+                    'val_loss': validation_gradient[0] + R,
                     'val_acc': self.score(X_val, y_val),
                 }
-                print(history)
-                self.hist['train_loss'].append(history['train_loss'])
-                self.hist['train_acc'].append(history['train_acc'])
-                self.hist['val_loss'].append(history['val_loss'])
-                self.hist['val_acc'].append(history['val_acc'])
-                # Every 5th run excluding the first
-                if i > 1 and i % 5 == 0:
-                    # take a look at validation set improvment in loss
-                    improvmnet = np.abs(self.val_loss[len(self.val_loss)-1] - (cost_val[0]))
-                    print(improvmnet)
+                print((history))
+
+            self.hist['train_loss'].append(history['train_loss'])
+            self.hist['train_acc'].append(history['train_acc'])
+            self.hist['val_loss'].append(history['val_loss'])
+            self.hist['val_acc'].append(history['val_acc'])
+            improvmnet = np.abs(np.mean(epoch_loss) - (validation_gradient[0] + R))
+            print("Epoch: ",i, "Improvment in loss: ", improvmnet)
+            # Every 5th run excluding the first
+            if i > 1 and i % 2 == 0:
+                # take a look at validation set improvment in loss... len -1 is the same gradient
+                epoch_loss = []
+                print("Improved loss: ", improvmnet)
+
+                # if it is not significant we are done
+                if improvmnet < 0.0001:
                     print("Stop in iteration:", i)
-                    # if it is not significant we are done
-                    if improvmnet < 1e-6:
-                        return self.params
+                    return self.params
 
         ### END CODE
 
