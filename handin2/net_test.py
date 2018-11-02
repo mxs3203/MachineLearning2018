@@ -4,7 +4,7 @@ import urllib
 import urllib.request
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-from handin2.net_classifier import *
+from net_classifier import *
 
 def export_fig(fig, name):
     result_path = os.path.join(os.getcwd(), 'results')

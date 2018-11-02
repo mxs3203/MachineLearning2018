@@ -206,17 +206,16 @@ class NetClassifier():
         ### END CODE
         
         ### YOUR CODE HERE - BACKWARDS PASS - compute derivatives of all (regularized) weights and bias, store them in d_w1, d_w2' d_w2, d_b1, d_b2
-
-        cost = 1 / len(X) * -np.sum(labels * np.log(Y_hat))
+        R = reg * (np.sum(np.square(W1.copy())) + np.sum(np.square(W2.copy())))
+        cost = 1 / len(X) * -np.sum(labels * np.log(Y_hat))+R
 
         delta3 = -labels+Y_hat
 
-
-        dW2 = np.dot(a1.T,delta3)/len(X)
+        dW2 = np.dot(a1.T,delta3)/len(X)+2*reg*W2
         db2 = np.sum(delta3, axis=0, keepdims=True)/len(X)
         delta2 = (delta3.dot(W2.T) * relu_derivative(a0))
 
-        dW1 = X.T.dot(delta2)/len(X)
+        dW1 = X.T.dot(delta2)/len(X)+2*reg*W1
         db1 = np.sum(delta2, axis=0, keepdims=True)/len(X)
 
         ### END CODE
@@ -264,22 +263,22 @@ class NetClassifier():
 
                 cost_dictionary = self.cost_grad(X_mini, Y_mini, params={'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2})
 
-                R = reg * (np.sum(np.square(W1.copy())) + np.sum(np.square(W2.copy())))
 
-                W1 += -lr * cost_dictionary[1]["d_w1"] * reg
-                W2 += -lr * cost_dictionary[1]["d_w2"] * reg
-                b1 += -lr * cost_dictionary[1]["d_b1"] * reg
-                b2 += -lr * cost_dictionary[1]["d_b2"] * reg
+
+                W1 += -lr * cost_dictionary[1]["d_w1"]
+                W2 += -lr * cost_dictionary[1]["d_w2"]
+                b1 += -lr * cost_dictionary[1]["d_b1"]
+                b2 += -lr * cost_dictionary[1]["d_b2"]
 
                 self.params = {'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2}
                 validation_gradient = self.cost_grad(X_val, y_val, params={'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2})
 
                 self.val_loss.append(validation_gradient[0])
-                epoch_loss.append(cost_dictionary[0] + R)
+                epoch_loss.append(cost_dictionary[0])
                 history = {
-                    'train_loss': cost_dictionary[0] + R,
+                    'train_loss': cost_dictionary[0],
                     'train_acc': self.score(X_mini, Y_mini),
-                    'val_loss': validation_gradient[0] + R,
+                    'val_loss': validation_gradient[0],
                     'val_acc': self.score(X_val, y_val),
                 }
                 print((history))
@@ -288,7 +287,7 @@ class NetClassifier():
             self.hist['train_acc'].append(history['train_acc'])
             self.hist['val_loss'].append(history['val_loss'])
             self.hist['val_acc'].append(history['val_acc'])
-            improvmnet = np.abs(np.mean(epoch_loss) - (validation_gradient[0] + R))
+            improvmnet = np.abs(np.mean(epoch_loss) - (validation_gradient[0]))
             print("Epoch: ",i, "Improvment in loss: ", improvmnet)
             # Every 5th run excluding the first
             if i > 1 and i % 2 == 0:
