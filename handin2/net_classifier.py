@@ -209,14 +209,14 @@ class NetClassifier():
         R = reg * (np.sum(np.square(W1.copy())) + np.sum(np.square(W2.copy())))
         cost = 1 / len(X) * -np.sum(labels * np.log(Y_hat)) + R
 
-        delta3 = -labels+Y_hat
+        delta3 = (-labels+Y_hat)/len(X)
 
-        dW2 = np.dot(a1.T,delta3)/len(X) + (2 * reg * W2)
-        db2 = np.sum(delta3, axis=0, keepdims=True)/len(X)
+        dW2 = np.dot(a1.T,delta3) + (2 * reg * W2)
+        db2 = np.sum(delta3, axis=0, keepdims=True)
         delta2 = (delta3.dot(W2.T) * relu_derivative(a0))
 
-        dW1 = X.T.dot(delta2)/len(X) + (2 * reg * W1)
-        db1 = np.sum(delta2, axis=0, keepdims=True)/len(X)
+        dW1 = X.T.dot(delta2) + (2 * reg * W1)
+        db1 = np.sum(delta2, axis=0, keepdims=True)
 
         ### END CODE
         # the return signature
