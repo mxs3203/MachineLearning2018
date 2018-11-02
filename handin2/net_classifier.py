@@ -297,7 +297,7 @@ class NetClassifier():
                 print("Improved loss: ", improvmnet)
 
                 # if it is not significant we are done
-                if improvmnet < 0.0001:
+                if improvmnet < 0.001:
                     print("Stop in iteration:", i)
                     return self.params
 
