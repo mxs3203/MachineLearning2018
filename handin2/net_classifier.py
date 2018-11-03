@@ -162,7 +162,7 @@ class NetClassifier():
         acc = None
         ### YOUR CODE HERE
         y_hat = np.argmax(self.predict(X), axis=1)
-        acc = np.mean(y == y_hat)
+        acc = np.sum(y == y_hat)/len(y)
         ### END CODE
         return acc
     
@@ -209,13 +209,14 @@ class NetClassifier():
         R = reg * (np.sum(np.square(W1.copy())) + np.sum(np.square(W2.copy())))
         cost = 1 / len(X) * -np.sum(labels * np.log(Y_hat)) + R
 
+        # backward
         delta3 = (-labels+Y_hat)/len(X)
 
-        dW2 = np.dot(a1.T,delta3) + (2 * reg * W2)
+        dW2 = np.dot(a1.T,delta3) + (reg * 2*W2)
         db2 = np.sum(delta3, axis=0, keepdims=True)
         delta2 = (delta3.dot(W2.T) * relu_derivative(a0))
 
-        dW1 = X.T.dot(delta2) + (2 * reg * W1)
+        dW1 = X.T.dot(delta2) + (reg * 2*W1)
         db1 = np.sum(delta2, axis=0, keepdims=True)
 
         ### END CODE
@@ -251,52 +252,55 @@ class NetClassifier():
 
         validation_gradient = 0
         cost_dictionary = None
-        R = 0
+
 
         ### YOUR CODE HERE
         for i in range(epochs):
             X_shuff, Y_shuff = shuffle(X_train, y_train)
+
             epoch_loss = []
             for j in range(n // batch_size):
                 X_mini = resample(X_shuff, n_samples=batch_size, random_state=0)
                 Y_mini = resample(Y_shuff, n_samples=batch_size, random_state=0)
 
-                cost_dictionary = self.cost_grad(X_mini, Y_mini, params={'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2}, reg = reg)
+                cost_dictionary = self.cost_grad(X_mini, Y_mini, params={'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2}, reg=reg)
 
-                W1 += -lr * cost_dictionary[1]["d_w1"]
-                W2 += -lr * cost_dictionary[1]["d_w2"]
-                b1 += -lr * cost_dictionary[1]["d_b1"]
-                b2 += -lr * cost_dictionary[1]["d_b2"]
-
-                self.params = {'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2}
-                validation_gradient = self.cost_grad(X_val, y_val, params={'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2}, reg = reg)
-
-                self.val_loss.append(validation_gradient[0])
+                W1 -= lr * cost_dictionary[1]["d_w1"]
+                W2 -= lr * cost_dictionary[1]["d_w2"]
+                b1 -= lr * cost_dictionary[1]["d_b1"]
+                b2 -= lr * cost_dictionary[1]["d_b2"]
                 epoch_loss.append(cost_dictionary[0])
-                history = {
-                    'train_loss': cost_dictionary[0],
-                    'train_acc': self.score(X_mini, Y_mini),
-                    'val_loss': validation_gradient[0],
-                    'val_acc': self.score(X_val, y_val),
-                }
-                print(history)
 
+
+
+            self.params = {'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2}
+            validation_gradient = self.cost_grad(X_val, y_val, params={'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2}, reg=reg)
+            cost_dictionary = self.cost_grad(X_train, y_train, params={'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2}, reg=reg)
+            history = {
+                'train_loss': cost_dictionary[0],
+                'train_acc': self.score(X_train, y_train, params=self.params),
+                'val_loss': validation_gradient[0],
+                'val_acc': self.score(X_val, y_val, params=self.params),
+            }
+            print("Epoch: ", i, "->", history)
             self.hist['train_loss'].append(history['train_loss'])
             self.hist['train_acc'].append(history['train_acc'])
             self.hist['val_loss'].append(history['val_loss'])
             self.hist['val_acc'].append(history['val_acc'])
-            improvmnet = np.abs(np.mean(epoch_loss) - (validation_gradient[0]))
-            print("Epoch: ",i, "Improvment in loss: ", improvmnet)
-            # Every 5th run excluding the first
-            if i > 1 and i % 2 == 0:
-                # take a look at validation set improvment in loss... len -1 is the same gradient
-                epoch_loss = []
-                print("Improved loss: ", improvmnet)
 
-                # if it is not significant we are done
-                if improvmnet < 0.001:
-                    print("Stop in iteration:", i)
-                    return self.params
+
+            # improvmnet = np.abs(np.mean(epoch_loss) - (validation_gradient[0]))
+            # print("Epoch: ",i, "Improvment in loss: ", improvmnet)
+            # # Every 5th run excluding the first
+            # if i > 1 and i % 2 == 0:
+            #     # take a look at validation set improvment in loss... len -1 is the same gradient
+            #     epoch_loss = []
+            #     print("Improved loss: ", improvmnet)
+            #
+            #     # if it is not significant we are done
+            #     if improvmnet < 0.001:
+            #         print("Stop in iteration:", i)
+            #         return self.params
 
         ### END CODE
 

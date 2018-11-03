@@ -4,7 +4,7 @@ import urllib
 import urllib.request
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-from net_classifier import *
+from handin2.net_classifier import *
 
 def export_fig(fig, name):
     result_path = os.path.join(os.getcwd(), 'results')
@@ -40,8 +40,8 @@ def load_digits_test_data():
     filename = 'auTest.npz'
     return load_au_data(filename)
     
-
-def digits_test(hidden_size=256, epochs=100, batch_size=16, lr=0.1, reg=1e-4): # 16 batch
+# the best: 256, 50, 0.01, 1e-8
+def digits_test(hidden_size=256, epochs=250, batch_size=50, lr=0.01, reg=1e-8): # 16 batch, 256 hidden, lr =0.1, reg 1e-4
     net = NetClassifier()
     digits, labels = load_digits_train_data()
     digits_train, digits_val, labels_train, labels_val = train_test_split(digits, labels, test_size=0.15, random_state=42)
