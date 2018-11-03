@@ -259,7 +259,7 @@ class NetClassifier():
             X_shuff, Y_shuff = shuffle(X_train, y_train)
 
             epoch_loss = []
-            for j in range(n // batch_size):
+            for j in range(batch_size):
                 X_mini = resample(X_shuff, n_samples=batch_size, random_state=0)
                 Y_mini = resample(Y_shuff, n_samples=batch_size, random_state=0)
 
@@ -289,18 +289,18 @@ class NetClassifier():
             self.hist['val_acc'].append(history['val_acc'])
 
 
-            # improvmnet = np.abs(np.mean(epoch_loss) - (validation_gradient[0]))
-            # print("Epoch: ",i, "Improvment in loss: ", improvmnet)
-            # # Every 5th run excluding the first
-            # if i > 1 and i % 2 == 0:
-            #     # take a look at validation set improvment in loss... len -1 is the same gradient
-            #     epoch_loss = []
-            #     print("Improved loss: ", improvmnet)
-            #
-            #     # if it is not significant we are done
-            #     if improvmnet < 0.001:
-            #         print("Stop in iteration:", i)
-            #         return self.params
+            improvmnet = np.abs(epoch_loss[len(epoch_loss)-1] - (cost_dictionary[0]))
+            print("Epoch: ",i, "Improvment in loss: ", improvmnet)
+            # Every 5th run excluding the first
+            if i > 1 and i % 2 == 0:
+                # take a look at validation set improvment in loss... len -1 is the same gradient
+                epoch_loss = []
+                print("Improved loss: ", improvmnet)
+
+                # if it is not significant we are done
+                if improvmnet < 0.07:
+                    print("Stop in iteration:", i)
+                    return self.params
 
         ### END CODE
 

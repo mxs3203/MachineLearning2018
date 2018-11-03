@@ -41,7 +41,7 @@ def load_digits_test_data():
     return load_au_data(filename)
     
 # the best: 256, 50, 0.01, 1e-8
-def digits_test(hidden_size=256, epochs=250, batch_size=50, lr=0.01, reg=1e-8): # 16 batch, 256 hidden, lr =0.1, reg 1e-4
+def digits_test(hidden_size=256, epochs=250, batch_size=300, lr=0.01, reg=1e-8): # 16 batch, 256 hidden, lr =0.1, reg 1e-4
     net = NetClassifier()
     digits, labels = load_digits_train_data()
     digits_train, digits_val, labels_train, labels_val = train_test_split(digits, labels, test_size=0.15, random_state=42)
