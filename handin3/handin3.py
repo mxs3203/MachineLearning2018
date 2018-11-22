@@ -76,6 +76,17 @@ for x in range(0,len(gen_arr)):
 
 print(count_mat)
 
+trans_mat  = np.zeros(shape=(3,3))
+
+for i in range(0,3):
+    for x in range(0,3):
+        trans_mat[i,x] = count_mat[i,x]/sum(count_mat[i])
+
+print(trans_mat)
+print([sum(trans_mat[i]) for i in range(0,3)])
+
+#print([sum(count_mat[i]/tot_len) for i in range(0,3)])
+
 
 
 
