@@ -1,9 +1,10 @@
 # http://users-cs.au.dk/cstorm/courses/ML_e18/projects/handin3/ml-handin-3.html
+import math
 
 import numpy as np
 from collections import Counter
 
-TESTING = True
+TESTING = False
 
 
 def read_fasta_file(filename):
@@ -66,6 +67,17 @@ def chk_next(ann, i):
     return False
 
 
+# TODO:
+def make_reverse_complement(seq):
+    seq = seq.upper()
+    print(seq)
+    complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
+
+    # "".join(complement[base] for base in seq)
+    # reversed or not reveresed ?
+    return "".join(complement[base] for base in reversed(seq))
+
+
 def extract_seq(seq, ann):
     i = 0
     start = 0
@@ -73,6 +85,10 @@ def extract_seq(seq, ann):
     n_list = []
     r_list = []
     c_list = []
+    start_codons_c = []
+    end_codons_c = []
+    start_codons_r = []
+    end_codons_r = []
     while i != len(ann):
         if ann[i] == 'N' and not chk_next(ann, i):
             end = i + 1
@@ -80,15 +96,19 @@ def extract_seq(seq, ann):
             start = i + 1
         if ann[i] == 'C' and not chk_next(ann, i):
             end = i + 1
-            c_list.append(seq[start:end])
+            start_codons_c.append(seq[start: start + 3])
+            end_codons_c.append(seq[end - 3: end])
+            c_list.append(seq[start + 3:end - 3])
             start = i + 1
         if ann[i] == 'R' and not chk_next(ann, i):
             end = i + 1
-            r_list.append(seq[start:end])
+            start_codons_r.append(seq[start: start + 3])
+            end_codons_r.append(seq[end - 3: end])
+            r_list.append(seq[start + 3: end - 3])
             start = i + 1
         i += 1
 
-    return c_list, r_list, n_list
+    return c_list, r_list, n_list, start_codons_c, end_codons_c, start_codons_r, end_codons_r
 
 
 def translate_path_to_indices_3state(obs):
@@ -120,60 +140,85 @@ def make_emission_prob_matrix(count_matrix_emission):
             emission_matrix[i, x] = count_matrix_emission[i, x] / sum(count_matrix_emission[i])
     return emission_matrix
 
-    # c_list, r_list, n_list = extract_seq(seq, ann)
-    # c_start_codons = []
-    # c_stop_codons = []
-    # r_start_codons = []
-    # r_stop_codons = []
-    # c_new = []
-    # r_new = []
-    # c_counts = [0, 0, 0, 0]  # ATCG
-    # r_counts = [0, 0, 0, 0]
-    # n_counts = [0, 0, 0, 0]
-    #
-    # for x in range(0, len(c_list)):
-    #     i = c_list[x]
-    #     c_start_codons.append(i[0:3])
-    #     c_stop_codons.append(i[len(i) - 3, len(i)])
-    #     c_new.append(i[3:-3])
-    #
-    # for x in range(0, len(r_list)):
-    #     i = r_list[x]
-    #     r_start_codons.append(i[0:3])
-    #     r_stop_codons.append(i[len(i) - 3, len(i)])
-    #     r_list.new(i[3:-3])
-    #
-    # for i in c_new:
-    #     c_counts[0] += i.count('A')
-    #     c_counts[1] += i.count('T')
-    #     c_counts[2] += i.count('C')
-    #     c_counts[3] += i.count('G')
-    #
-    # for i in r_new:
-    #     r_counts[0] += i.count('A')
-    #     r_counts[1] += i.count('T')
-    #     r_counts[2] += i.count('C')
-    #     r_counts[3] += i.count('G')
-    #
-    # for i in n_list:
-    #     n_counts[0] += i.count('A')
-    #     n_counts[1] += i.count('T')
-    #     n_counts[2] += i.count('C')
-    #     n_counts[3] += i.count('G')
-    #
-    # for i in range(0, len(c_counts)):
-    #     length = sum(c_counts)
-    #     c_counts[i] = c_counts[i] / length
-    #
-    # for i in range(0, len(r_counts)):
-    #     length = sum(r_counts)
-    #     r_counts[i] = r_counts[i] / length
-    #
-    # for i in range(0, len(n_counts)):
-    #     length = sum(n_counts)
-    #     n_counts[i] = n_counts[i] / length
-    #
-    # return Counter(c_start_codons), Counter(r_start_codons), c_counts, r_counts, n_counts
+
+def log(x):
+    if x == 0:
+        return float('-inf')
+    return math.log(x
+                    )
+
+
+def make_table(m, n):
+    """Make a table with `m` rows and `n` columns filled with zeros."""
+    return [[0] * n for _ in range(m)]
+
+
+def make_log(trans_matrix, emission_matrix, init_prob):
+    K = len(init_prob)
+    # Create empty matrices for filling in
+    emission_probs = make_table(K, len(emission_matrix[0]))
+    trans_probs = make_table(K, K)
+
+    # PUT THEM on LOG scale
+    init_prob_log = [log(y) for y in init_prob]
+
+    # emission
+    for i in range(K):
+        for j in range(len(emission_matrix[i])):
+            emission_probs[i][j] = log(emission_matrix[i][j])
+    # transition
+    for i in range(K):
+        for j in range(K):
+            trans_probs[i][j] = log(trans_matrix[i][j])
+
+    return trans_probs, emission_probs, init_prob_log
+
+
+def viterbi(trans_matrix, emission_matrix, init_prob, seq):
+    K = len(init_prob)
+    N = len(seq)
+    # transform ACTG to 0123 for accessing indexes in matrix
+    seq_indexes = translate_observations_to_indices(seq)
+
+    # transform it on log scale
+    #trans_matrix, emission_matrix, init_prob = make_log(trans_matrix, emission_matrix, init_prob)
+
+    w = np.zeros(shape=(K, N))
+
+    for i in range(K):
+        w[i][0] = init_prob[i] + emission_matrix[i][seq_indexes[0]]
+
+    # Inductive case: fill out w[i][j] for i = 0..k, j = 0..n-1
+    for j in range(1, N):
+        for i in range(K):
+            for t in range(K):
+                w[i][j] = max(w[i][j], emission_matrix[i][seq_indexes[j]] + w[t][j - 1] + trans_matrix[t][i])
+
+    z = [None] * N
+    max_ind = None
+    max_path = float("-inf")
+
+    # start with the state with higher probability in last column
+    for i in range(K - 1):
+        if (max_path < w[i][N - 1]):
+            max_path = max(max_path, w[i][N - 1])
+            z[N - 1] = i
+
+    # check which state did we come from
+    for n in range(N - 2, -1, -1):
+        #print(emission_matrix[z[n + 1]][seq_indexes[n + 1]])
+        print('----')
+        for k in range(K):
+            print(w[k][n])
+            print(emission_matrix[z[n + 1]][seq_indexes[n + 1]] + trans_matrix[k][z[n + 1]])
+            print(w[z[n + 1]][n + 1])
+            print("-")
+            # if we arrived from there
+            if (w[k][n] + emission_matrix[z[n + 1]][seq_indexes[n + 1]] + trans_matrix[k][z[n + 1]]) == w[z[n + 1]][n + 1]:
+                z[n] = k  # this is our state
+                break  # break the inner for loop for states
+
+    return z
 
 
 def test_exstract_seq(seq, ann):
@@ -182,10 +227,20 @@ def test_exstract_seq(seq, ann):
     print(ann)
     print('Extracting sequences based on annotation: ')
     result = extract_seq(seq, ann)
-
-    assert result[0] == ['TACGTACG', 'T']
-    assert result[1] == ['TGCGTA', 'C']
-    assert result[2] == ['CTGACGTCAGC', 'ACA', 'T']
+    print("C: ", result[0])
+    print("R: ", result[1])
+    print("N: ", result[2])
+    print("C_start:", result[3])
+    print("C_end", result[4])
+    print("R_start:", result[5])
+    print("R_end", result[6])
+    assert result[0] == ['GT']
+    assert result[1] == ['GT']
+    assert result[2] == ['CTGACGTCAGC', 'ACA', 'C']
+    assert result[3] == ['TAC']
+    assert result[4] == ['ACG']
+    assert result[5] == ['TGC']
+    assert result[6] == ['ATT']
 
     print('-------------Test Extracting sequences Success!------------- \n\n')
 
@@ -261,23 +316,22 @@ def test_emis_matrix(seq, ann):
     assert emis_count[1][2] == 2
     assert emis_count[1][3] == 3
 
-
     print("------------- Test Emis matrix success! -------------\n\n")
 
 
 if __name__ == '__main__':
-
+    char_arr = ['C', 'R', 'N']
     ################# Unit Testing ####################################
     if TESTING:
         test_exstract_seq(seq='CTGACGTCAGCTACGTACGACATGCGTATTC',
-                          ann='NNNNNNNNNNNCCCCCCCCNNNRRRRRRCNR')
+                          ann='NNNNNNNNNNNCCCCCCCCNNNRRRRRRRRN')
 
         # states of length 10
         gen_arr = [[{'genome1': "GTCAGTACGT"}, {'true-ann1': "NNNNNNNNNN"}],  # C->R = 1, N->C = 1, R->N=1 Others 0
                    [{'genome2': "AGTAAAACGT"}, {'true-ann2': "RRRRRRRRRR"}],  # 11 R to R
                    [{'genome3': "TGTAAAACGT"}, {'true-ann3': "CCCCCCCCCC"}],  # 11 C to C
                    [{'genome4': "TGTAAAACGT"}, {'true-ann4': "NNNCCCRRRN"}]]  # 11 N to N
-        char_arr = ['C', 'R', 'N']
+
         test_count_char("NNNNCCCCNCRRRNCRR", 'N', 'C', 3)
         test_count_char("NNNNCCCCNCRRRCRCR", 'R', 'C', 2)
         count_mat = test_count_mat(gen_arr, char_arr)
@@ -285,6 +339,20 @@ if __name__ == '__main__':
         test_emis_matrix(seq='CTGACGTCAGCTACGTACGACATGCGTATTC',
                          ann='NNNNNNNNNNNCCCCCCCCNNNRRRRRRCNR')
 
+    print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+    emis_cnt = make_emission_count(seq='CTGACGTCAGCTACGTACGACATGCGTATTC',
+                                   ann='NNNNNNNNNNNCCCCCCCCNNNRRRRRRRRR')
+    emis_prob = make_emission_prob_matrix(emis_cnt)
+    sample = [[{'genome1': "CTGACGTCAGCTACGTACGACATGCGTATTC"}, {'true-ann1': "NNNNNNNNNNNCCCCCCCCNNNRRRRRRRRR"}]]
+    trans_cnt = create_count_matrix(sample, char_arr)
+    trans_matrix = make_trans(trans_cnt)
+
+    viterbi_seq = viterbi(emission_matrix=emis_prob,
+                          init_prob=[1/3,1/3,1/3],
+                          trans_matrix=trans_matrix,
+                          seq='AGTCAGCTGCTA')
+    print(viterbi_seq)
+    print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
 
     ####################################################################
 
@@ -314,6 +382,7 @@ if __name__ == '__main__':
     c_list = result[0]
     r_list = result[1]
     n_list = result[2]
+    # print(c_list)
 
     # 1. Load seqs and ann
     # 2. differ between coding, non coding and reverse seq
