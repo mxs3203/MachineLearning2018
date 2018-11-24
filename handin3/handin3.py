@@ -1,6 +1,8 @@
 # http://users-cs.au.dk/cstorm/courses/ML_e18/projects/handin3/ml-handin-3.html
 
 import numpy as np
+from collections import Counter
+
 
 TESTING = False
 
@@ -88,6 +90,62 @@ def extract_seq(seq, ann):
         i += 1
 
     return c_list, r_list, n_list
+
+def make_emission_count(seq,ann):
+    c_list, r_list, n_list = extract_seq(seq, ann)
+    c_start_codons = []
+    c_stop_codons = []
+    r_start_codons = []
+    r_stop_codons = []
+    c_new = []
+    r_new= []
+    c_counts = [0, 0, 0, 0] #ATCG
+    r_counts =[0, 0, 0, 0]
+
+    for x in range(0,len(c_list)):
+        i = c_list[x]
+        c_start_codons.append(i[0:3])
+        c_stop_codons.append(i[len(i)-3, len(i)])
+        c_new.append(i[3:-3])
+
+    for x in range(0, len(r_list)):
+        i = r_list[x]
+        r_start_codons.append(i[0:3])
+        r_stop_codons.append(i[len(i)-3, len(i)])
+        r_list.new(i[3:-3])
+
+    for i in  c_new:
+        c_counts[0] += i.count('A')
+        c_counts[1] += i.count('T')
+        c_counts[2] += i.count('C')
+        c_counts[3] += i.count('G')
+
+    for i in r_new:
+        r_counts[0] += i.count('A')
+        r_counts[1] += i.count('T')
+        r_counts[2] += i.count('C')
+        r_counts[3] += i.count('G')
+
+    for i in range(0,len(c_counts)):
+        length = sum(c_counts)
+        c_counts[i] = c_counts[i]/length
+
+    for i in range(0,len(r_counts)):
+        length = sum(r_counts)
+        r_counts[i] = r_counts[i]/length
+
+    return Counter(c_start_codons), Counter(r_start_codons), c_counts, r_counts
+
+
+
+
+
+
+
+
+
+
+
 
 
 def test_exstract_seq(seq, ann):
