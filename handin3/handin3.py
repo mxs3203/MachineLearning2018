@@ -314,3 +314,10 @@ if __name__ == '__main__':
     c_list = result[0]
     r_list = result[1]
     n_list = result[2]
+
+    # 1. Load seqs and ann
+    # 2. differ between coding, non coding and reverse seq
+    # 3. make trans matrix based on ann seq
+    # 4. make emis based on genome and ann seq
+    # 5. What is init prob?
+    # 6. Viterbi or post decode or whatever of obeserved genome seqs to get ann seqs
