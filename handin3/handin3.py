@@ -3,7 +3,6 @@
 import numpy as np
 from collections import Counter
 
-
 TESTING = False
 
 
@@ -91,72 +90,86 @@ def extract_seq(seq, ann):
 
     return c_list, r_list, n_list
 
-def make_emission_count(seq,ann):
-    c_list, r_list, n_list = extract_seq(seq, ann)
-    c_start_codons = []
-    c_stop_codons = []
-    r_start_codons = []
-    r_stop_codons = []
-    c_new = []
-    r_new= []
-    c_counts = [0, 0, 0, 0] #ATCG
-    r_counts = [0, 0, 0, 0]
-    n_counts = [0, 0, 0, 0]
 
-    for x in range(0,len(c_list)):
-        i = c_list[x]
-        c_start_codons.append(i[0:3])
-        c_stop_codons.append(i[len(i)-3, len(i)])
-        c_new.append(i[3:-3])
-
-    for x in range(0, len(r_list)):
-        i = r_list[x]
-        r_start_codons.append(i[0:3])
-        r_stop_codons.append(i[len(i)-3, len(i)])
-        r_list.new(i[3:-3])
-
-    for i in  c_new:
-        c_counts[0] += i.count('A')
-        c_counts[1] += i.count('T')
-        c_counts[2] += i.count('C')
-        c_counts[3] += i.count('G')
-
-    for i in r_new:
-        r_counts[0] += i.count('A')
-        r_counts[1] += i.count('T')
-        r_counts[2] += i.count('C')
-        r_counts[3] += i.count('G')
-
-    for i in n_list:
-        n_counts[0] += i.count('A')
-        n_counts[1] += i.count('T')
-        n_counts[2] += i.count('C')
-        n_counts[3] += i.count('G')
-
-    for i in range(0,len(c_counts)):
-        length = sum(c_counts)
-        c_counts[i] = c_counts[i]/length
-
-    for i in range(0,len(r_counts)):
-        length = sum(r_counts)
-        r_counts[i] = r_counts[i]/length
-
-    for i in range(0,len(n_counts)):
-        length = sum(n_counts)
-        n_counts[i] = n_counts[i]/length
-
-    return Counter(c_start_codons), Counter(r_start_codons), c_counts, r_counts, n_counts
+def make_table(m, n):
+    return [[0] * n for _ in range(m)]
 
 
+def translate_path_to_indices_3state(obs):
+    mapping = {"C": 0, "c": 0, "N": 1, "n": 1, "R": 2, "r": 2}
+    return [mapping[symbol.lower()] for symbol in obs]
 
 
+def translate_observations_to_indices(obs):
+    mapping = {'a': 0, 'c': 1, 'g': 2, 't': 3}
+    return [mapping[symbol.lower()] for symbol in obs]
 
 
+def make_emission_count(seq, ann):
+    N = len(seq)
+    indeces_ann = translate_path_to_indices_3state(ann)
+    indeces_seq = translate_observations_to_indices(seq)
+    matrix_emission = make_table(3, 4)  # 3 states(N,C,R) and 4 emisssions(ACGT)
 
+    for n in range(N):
+        matrix_emission[indeces_ann[n]][indeces_seq[n]] += 1
 
+    return matrix_emission
 
-
-
+    # c_list, r_list, n_list = extract_seq(seq, ann)
+    # c_start_codons = []
+    # c_stop_codons = []
+    # r_start_codons = []
+    # r_stop_codons = []
+    # c_new = []
+    # r_new = []
+    # c_counts = [0, 0, 0, 0]  # ATCG
+    # r_counts = [0, 0, 0, 0]
+    # n_counts = [0, 0, 0, 0]
+    #
+    # for x in range(0, len(c_list)):
+    #     i = c_list[x]
+    #     c_start_codons.append(i[0:3])
+    #     c_stop_codons.append(i[len(i) - 3, len(i)])
+    #     c_new.append(i[3:-3])
+    #
+    # for x in range(0, len(r_list)):
+    #     i = r_list[x]
+    #     r_start_codons.append(i[0:3])
+    #     r_stop_codons.append(i[len(i) - 3, len(i)])
+    #     r_list.new(i[3:-3])
+    #
+    # for i in c_new:
+    #     c_counts[0] += i.count('A')
+    #     c_counts[1] += i.count('T')
+    #     c_counts[2] += i.count('C')
+    #     c_counts[3] += i.count('G')
+    #
+    # for i in r_new:
+    #     r_counts[0] += i.count('A')
+    #     r_counts[1] += i.count('T')
+    #     r_counts[2] += i.count('C')
+    #     r_counts[3] += i.count('G')
+    #
+    # for i in n_list:
+    #     n_counts[0] += i.count('A')
+    #     n_counts[1] += i.count('T')
+    #     n_counts[2] += i.count('C')
+    #     n_counts[3] += i.count('G')
+    #
+    # for i in range(0, len(c_counts)):
+    #     length = sum(c_counts)
+    #     c_counts[i] = c_counts[i] / length
+    #
+    # for i in range(0, len(r_counts)):
+    #     length = sum(r_counts)
+    #     r_counts[i] = r_counts[i] / length
+    #
+    # for i in range(0, len(n_counts)):
+    #     length = sum(n_counts)
+    #     n_counts[i] = n_counts[i] / length
+    #
+    # return Counter(c_start_codons), Counter(r_start_codons), c_counts, r_counts, n_counts
 
 
 def test_exstract_seq(seq, ann):
@@ -237,6 +250,9 @@ if __name__ == '__main__':
         test_count_char("NNNNCCCCNCRRRCRCR", 'R', 'C', 2)
         count_mat = test_count_mat(gen_arr, char_arr)
         test_make_trans(count_mat)
+
+    print(make_emission_count(seq='CTGACGTCAGCTACGTACGACATGCGTATTC',
+                              ann='NNNNNNNNNNNCCCCCCCCNNNRRRRRRCNR'))
     ####################################################################
 
     full_path = 'C:/Users/Ky/Desktop/ml18/handin3/'
