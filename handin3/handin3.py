@@ -3,7 +3,7 @@
 import numpy as np
 from collections import Counter
 
-TESTING = False
+TESTING = True
 
 
 def read_fasta_file(filename):
@@ -91,12 +91,8 @@ def extract_seq(seq, ann):
     return c_list, r_list, n_list
 
 
-def make_table(m, n):
-    return [[0] * n for _ in range(m)]
-
-
 def translate_path_to_indices_3state(obs):
-    mapping = {"C": 0, "c": 0, "N": 1, "n": 1, "R": 2, "r": 2}
+    mapping = {"N": 0, "n": 0, "C": 1, "c": 1, "R": 2, "r": 2}
     return [mapping[symbol.lower()] for symbol in obs]
 
 
@@ -109,12 +105,20 @@ def make_emission_count(seq, ann):
     N = len(seq)
     indeces_ann = translate_path_to_indices_3state(ann)
     indeces_seq = translate_observations_to_indices(seq)
-    matrix_emission = make_table(3, 4)  # 3 states(N,C,R) and 4 emisssions(ACGT)
+    matrix_emission = np.zeros(shape=(3, 4))  # 3 states(N,C,R) and 4 emisssions(ACGT)
 
     for n in range(N):
         matrix_emission[indeces_ann[n]][indeces_seq[n]] += 1
 
     return matrix_emission
+
+
+def make_emission_prob_matrix(count_matrix_emission):
+    emission_matrix = np.zeros(shape=(3, 4))
+    for i in range(0, 3):
+        for x in range(0, 4):
+            emission_matrix[i, x] = count_matrix_emission[i, x] / sum(count_matrix_emission[i])
+    return emission_matrix
 
     # c_list, r_list, n_list = extract_seq(seq, ann)
     # c_start_codons = []
@@ -233,6 +237,34 @@ def test_count_char(seq, from_char, to_char, exp):
     print("------------- Test Count Char success! -------------\n\n")
 
 
+def test_emis_matrix(seq, ann):
+    print('-------------Starting Emission matrix Matrix: -------------')
+
+    print(seq)
+    print(ann)
+    print("rows = N C R")
+    print("cols = A C G T")
+    emis_count = make_emission_count(seq=seq,
+                                     ann=ann)
+
+    print(emis_count)
+
+    print(make_emission_prob_matrix(emis_count))
+
+    assert emis_count[0][0] == 4
+    assert emis_count[0][1] == 5
+    assert emis_count[0][2] == 3
+    assert emis_count[0][3] == 3
+
+    assert emis_count[1][0] == 2
+    assert emis_count[1][1] == 2
+    assert emis_count[1][2] == 2
+    assert emis_count[1][3] == 3
+
+
+    print("------------- Test Emis matrix success! -------------\n\n")
+
+
 if __name__ == '__main__':
 
     ################# Unit Testing ####################################
@@ -250,9 +282,10 @@ if __name__ == '__main__':
         test_count_char("NNNNCCCCNCRRRCRCR", 'R', 'C', 2)
         count_mat = test_count_mat(gen_arr, char_arr)
         test_make_trans(count_mat)
+        test_emis_matrix(seq='CTGACGTCAGCTACGTACGACATGCGTATTC',
+                         ann='NNNNNNNNNNNCCCCCCCCNNNRRRRRRCNR')
 
-    print(make_emission_count(seq='CTGACGTCAGCTACGTACGACATGCGTATTC',
-                              ann='NNNNNNNNNNNCCCCCCCCNNNRRRRRRCNR'))
+
     ####################################################################
 
     full_path = 'C:/Users/Ky/Desktop/ml18/handin3/'
