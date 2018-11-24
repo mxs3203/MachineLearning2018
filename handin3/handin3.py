@@ -4,6 +4,7 @@ import math
 import numpy as np
 from collections import Counter
 
+
 TESTING = False
 
 
@@ -67,17 +68,6 @@ def chk_next(ann, i):
     return False
 
 
-# TODO:
-def make_reverse_complement(seq):
-    seq = seq.upper()
-    print(seq)
-    complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
-
-    # "".join(complement[base] for base in seq)
-    # reversed or not reveresed ?
-    return "".join(complement[base] for base in reversed(seq))
-
-
 def extract_seq(seq, ann):
     i = 0
     start = 0
@@ -121,36 +111,61 @@ def translate_observations_to_indices(obs):
     return [mapping[symbol.lower()] for symbol in obs]
 
 
-def make_emission_count(seq, ann):
-    N = len(seq)
-    indeces_ann = translate_path_to_indices_3state(ann)
-    indeces_seq = translate_observations_to_indices(seq)
-    matrix_emission = np.zeros(shape=(3, 4))  # 3 states(N,C,R) and 4 emisssions(ACGT)
+def make_emission_count(seq,ann):
+    c_list, r_list, n_list = extract_seq(seq, ann)
+    c_start_codons = []
+    c_stop_codons = []
+    r_start_codons = []
+    r_stop_codons = []
+    c_new = []
+    r_new= []
+    c_counts = [0, 0, 0, 0] #ATCG
+    r_counts = [0, 0, 0, 0]
+    n_counts = [0, 0, 0, 0]
 
-    for n in range(N):
-        matrix_emission[indeces_ann[n]][indeces_seq[n]] += 1
+    for x in range(0,len(c_list)):
+        i = c_list[x]
+        c_start_codons.append(i[0:3])
+        c_stop_codons.append(i[len(i)-3, len(i)])
+        c_new.append(i[3:-3])
 
-    return matrix_emission
+    for x in range(0, len(r_list)):
+        i = r_list[x]
+        r_start_codons.append(i[0:3])
+        r_stop_codons.append(i[len(i)-3, len(i)])
+        r_list.new(i[3:-3])
 
+    for i in  c_new:
+        c_counts[0] += i.count('A')
+        c_counts[1] += i.count('T')
+        c_counts[2] += i.count('C')
+        c_counts[3] += i.count('G')
 
-def make_emission_prob_matrix(count_matrix_emission):
-    emission_matrix = np.zeros(shape=(3, 4))
-    for i in range(0, 3):
-        for x in range(0, 4):
-            emission_matrix[i, x] = count_matrix_emission[i, x] / sum(count_matrix_emission[i])
-    return emission_matrix
+    for i in r_new:
+        r_counts[0] += i.count('A')
+        r_counts[1] += i.count('T')
+        r_counts[2] += i.count('C')
+        r_counts[3] += i.count('G')
 
+    for i in n_list:
+        n_counts[0] += i.count('A')
+        n_counts[1] += i.count('T')
+        n_counts[2] += i.count('C')
+        n_counts[3] += i.count('G')
 
-def log(x):
-    if x == 0:
-        return float('-inf')
-    return math.log(x
-                    )
+    for i in range(0,len(c_counts)):
+        length = sum(c_counts)
+        c_counts[i] = c_counts[i]/length
 
+    for i in range(0,len(r_counts)):
+        length = sum(r_counts)
+        r_counts[i] = r_counts[i]/length
 
-def make_table(m, n):
-    """Make a table with `m` rows and `n` columns filled with zeros."""
-    return [[0] * n for _ in range(m)]
+    for i in range(0,len(n_counts)):
+        length = sum(n_counts)
+        n_counts[i] = n_counts[i]/length
+
+    return Counter(c_start_codons), Counter(r_start_codons), c_counts, r_counts, n_counts
 
 
 def make_log(trans_matrix, emission_matrix, init_prob):
