@@ -100,7 +100,8 @@ def make_emission_count(seq,ann):
     c_new = []
     r_new= []
     c_counts = [0, 0, 0, 0] #ATCG
-    r_counts =[0, 0, 0, 0]
+    r_counts = [0, 0, 0, 0]
+    n_counts = [0, 0, 0, 0]
 
     for x in range(0,len(c_list)):
         i = c_list[x]
@@ -126,6 +127,12 @@ def make_emission_count(seq,ann):
         r_counts[2] += i.count('C')
         r_counts[3] += i.count('G')
 
+    for i in n_list:
+        n_counts[0] += i.count('A')
+        n_counts[1] += i.count('T')
+        n_counts[2] += i.count('C')
+        n_counts[3] += i.count('G')
+
     for i in range(0,len(c_counts)):
         length = sum(c_counts)
         c_counts[i] = c_counts[i]/length
@@ -134,7 +141,11 @@ def make_emission_count(seq,ann):
         length = sum(r_counts)
         r_counts[i] = r_counts[i]/length
 
-    return Counter(c_start_codons), Counter(r_start_codons), c_counts, r_counts
+    for i in range(0,len(n_counts)):
+        length = sum(n_counts)
+        n_counts[i] = n_counts[i]/length
+
+    return Counter(c_start_codons), Counter(r_start_codons), c_counts, r_counts, n_counts
 
 
 
