@@ -32,6 +32,14 @@ def read_fasta_file(filename):
         sequences[name] = ''.join(lines)
     return sequences
 
+def matprint(mat, fmt="g"):
+    col_maxes = [max([len(("{:"+fmt+"}").format(x)) for x in col]) for col in mat.T]
+    for x in mat:
+        for i, y in enumerate(x):
+            print(("{:"+str(col_maxes[i])+fmt+"}").format(y), end="  ")
+        print("")
+
+
 
 def count_char(seq, from_char, to_char):
     count = 0
@@ -291,6 +299,50 @@ def viterbi(trans_matrix, emission_matrix, init_prob, seq):
 
     return np.argmax(score_matrix, axis=1)
 
+
+def viterbi_test(trans_mat,emat,pi,seq):
+    char_dict = {'A':0,'T':1,'C':2,'G':3}
+    pi = np.log(pi)
+    trans_mat = np.log(trans_mat)
+    emat = np.log(emat)
+
+    lenSeq = len(seq)
+    states = len(trans_mat)
+
+    MaxArrow = np.zeros(shape=(states,lenSeq))
+    MaxArrow.fill(np.log(0))
+
+
+    backtrack_seq = [0]*lenSeq
+    score_matrix = np.zeros(shape=(states,lenSeq))
+    score_matrix.fill(np.log(0))
+
+    score_matrix[:,0] =  pi + emat[char_dict[seq[0]],]
+
+    for i in range(1,lenSeq):
+        for  x in range(states):
+            prevCol = score_matrix[:,i-1]
+            em_prob = emat[char_dict[seq[i]],x]
+            trans_prob = trans_mat[x,:]
+            product = prevCol + trans_prob + [em_prob]*states
+
+            score_matrix[x,i] = np.max(product)
+            MaxArrow[x,i] = np.argmax(product)
+
+    backtrack_seq[lenSeq-1] = np.argmax(score_matrix[:,lenSeq-1])
+
+    for i in range(lenSeq-1,1,-1):
+        #print(i)
+        maxa = MaxArrow[backtrack_seq[i],i]
+        #print(maxa)
+        backtrack_seq[i-1] = int(maxa)
+
+    return backtrack_seq, score_matrix
+
+
+
+
+
 def test_exstract_seq(seq, ann):
     print('-------------Starting Test  extract Seq with:------------- ')
     print(seq)
@@ -472,5 +524,9 @@ if __name__ == '__main__':
         em_mat = make_emission_prob_matrix(emission_counts)
 
         hmm = make_hmm(trans_mat, em_mat.transpose())
-        viterbi_seq = viterbi(hmm[0], hmm[1],[1]+[0]*14,list(gen_arr[0][0].items())[0][1][0:1000])
-        print(''.join(num_to_char(viterbi_seq)))
+        results = viterbi_test(hmm[0], hmm[1],[1]+[0]*14,list(gen_arr[0][0].items())[0][1][0:1000])
+        print(''.join(num_to_char(results[0])))
+        #print(results)
+       # print[results[1]]
+        #matprint(hmm[0])
+        #matprint(hmm[1])
