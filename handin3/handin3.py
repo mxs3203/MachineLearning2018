@@ -4,7 +4,6 @@ import math
 import numpy as np
 from collections import Counter
 
-
 TESTING = False
 
 
@@ -42,12 +41,12 @@ def count_char(seq, from_char, to_char):
     return count
 
 
-def create_count_matrix(gen_arr, char_arr):
+def create_count_matrix(seq, ann):
+    char_arr = ['C', 'R', 'N']
     count_mat = np.zeros(shape=(3, 3))
-    for x in range(0, len(gen_arr)):
-        for i in char_arr:
-            for m in char_arr:
-                count_mat[char_arr.index(i), char_arr.index(m)] += count_char(list(gen_arr[x][1].items())[0][1], i, m)
+    for i in range(3):
+        for n in range(3):
+            count_mat += count_char(seq,char_arr[i],char_arr[n])
 
     return (count_mat)
 
@@ -66,6 +65,17 @@ def chk_next(ann, i):
     if ann[i] == ann[i + 1]:
         return True
     return False
+
+
+# TODO:
+def make_reverse_complement(seq):
+    seq = seq.upper()
+    print(seq)
+    complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
+
+    # "".join(complement[base] for base in seq)
+    # reversed or not reveresed ?
+    return "".join(complement[base] for base in reversed(seq))
 
 
 def extract_seq(seq, ann):
@@ -111,7 +121,26 @@ def translate_observations_to_indices(obs):
     return [mapping[symbol.lower()] for symbol in obs]
 
 
-def make_emission_count(seq,ann):
+def make_emission_count(seq, ann):
+    N = len(seq)
+    indeces_ann = translate_path_to_indices_3state(ann)
+    indeces_seq = translate_observations_to_indices(seq)
+    matrix_emission = np.zeros(shape=(3, 4))  # 3 states(N,C,R) and 4 emisssions(ACGT)
+
+    for n in range(N):
+        matrix_emission[indeces_ann[n]][indeces_seq[n]] += 1
+
+    return matrix_emission
+
+
+def make_emission_prob_matrix(count_matrix_emission):
+    emission_matrix = np.zeros(shape=(3, 4))
+    for i in range(0, 3):
+        for x in range(0, 4):
+            emission_matrix[i, x] = count_matrix_emission[i, x] / sum(count_matrix_emission[i])
+    return emission_matrix
+
+def ky_make_emission_count(seq, ann):
     c_list, r_list, n_list = extract_seq(seq, ann)
     c_start_codons = []
     c_stop_codons = []
@@ -123,7 +152,7 @@ def make_emission_count(seq,ann):
     r_counts = [0, 0, 0, 0]
     n_counts = [0, 0, 0, 0]
 
-    for x in range(0,len(c_list)):
+    for x in range(0, len(c_list)):
         i = c_list[x]
         c_start_codons.append(i[0:3])
         c_stop_codons.append(i[len(i)-3, len(i)])
@@ -135,7 +164,7 @@ def make_emission_count(seq,ann):
         r_stop_codons.append(i[len(i)-3, len(i)])
         r_list.new(i[3:-3])
 
-    for i in  c_new:
+    for i in c_new:
         c_counts[0] += i.count('A')
         c_counts[1] += i.count('T')
         c_counts[2] += i.count('C')
@@ -166,6 +195,45 @@ def make_emission_count(seq,ann):
         n_counts[i] = n_counts[i]/length
 
     return Counter(c_start_codons), Counter(r_start_codons), c_counts, r_counts, n_counts
+
+def make_hmm(old_trans, old_emat):
+
+    new_trans = np.zeros(shape=(15,15))
+    for i in range(14):
+        new_trans[i,i+1] = 1
+    new_trans[0,0] = old_trans[2,2]
+    new_trans[7,0] = old_trans[0,2]
+    new_trans[14,0] = old_trans[1,2]
+    new_trans[14,1] = old_trans[1,0]
+    new_trans[0,1] = old_trans[2,0]
+    new_trans[4,4] = old_trans[0,0]
+    new_trans[4,5] = old_trans[0,1] + old_trans[0,2]
+    new_trans[0,8] = old_trans[2,1]
+    new_trans[7,8] = old_trans[0,1]
+    new_trans[11,11] = old_trans[1,1]
+    new_trans[11,12] = old_trans[1,0] + old_trans[1,2]
+
+    new_emat = np.zeros(shape=(4,15))
+    new_emat[0,] = [0,1]+[0]*4+[1,1]+[0]*2+[1]+[0]*2+[1,0]
+    new_emat[1,] = [0]*2+[1]+[0]*2+[1]+[0]*2+[1,1]+[0]*4+[1]
+    new_emat[2,] = [0]*12+[1]+[0,0]
+    new_emat[3,] = [0]*3+[1]+[0]*11
+    new_emat[:,0] = old_emat[:,0]
+    new_emat[:,4] = old_emat[:,1]
+    new_emat[:,11] = old_emat[:,2]
+
+    return new_trans, new_emat
+
+def log(x):
+    if x == 0:
+        return float('-inf')
+    return math.log(x
+                    )
+
+
+def make_table(m, n):
+    """Make a table with `m` rows and `n` columns filled with zeros."""
+    return [[0] * n for _ in range(m)]
 
 
 def make_log(trans_matrix, emission_matrix, init_prob):
@@ -354,20 +422,23 @@ if __name__ == '__main__':
         test_emis_matrix(seq='CTGACGTCAGCTACGTACGACATGCGTATTC',
                          ann='NNNNNNNNNNNCCCCCCCCNNNRRRRRRCNR')
 
-    print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
-    emis_cnt = make_emission_count(seq='CTGACGTCAGCTACGTACGACATGCGTATTC',
-                                   ann='NNNNNNNNNNNCCCCCCCCNNNRRRRRRRRR')
-    emis_prob = make_emission_prob_matrix(emis_cnt)
-    sample = [[{'genome1': "CTGACGTCAGCTACGTACGACATGCGTATTC"}, {'true-ann1': "NNNNNNNNNNNCCCCCCCCNNNRRRRRRRRR"}]]
-    trans_cnt = create_count_matrix(sample, char_arr)
-    trans_matrix = make_trans(trans_cnt)
+        print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+        emis_cnt = make_emission_count(seq='CTGACGTCAGCTACGTACGACATGCGTATTC',
+                                       ann='NNNNNNNNNNNCCCCCCCCNNNRRRRRRRRR')
+        print(emis_cnt)
+        emis_prob = make_emission_prob_matrix(emis_cnt)
+        sample = [[{'genome1': "CTGACGTCAGCTACGTACGACATGCGTATTC"}, {'true-ann1': "NNNNNNNNNNNCCCCCCCCNNNRRRRRRRRR"}]]
+        trans_cnt = create_count_matrix(sample, char_arr)
+        trans_matrix = make_trans(trans_cnt)
 
-    viterbi_seq = viterbi(emission_matrix=emis_prob,
-                          init_prob=[1/3,1/3,1/3],
-                          trans_matrix=trans_matrix,
-                          seq='AGTCAGCTGCTA')
-    print(viterbi_seq)
-    print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+        viterbi_seq = viterbi(emission_matrix=emis_prob,
+                              init_prob=[1/3,1/3,1/3],
+                              trans_matrix=trans_matrix,
+                              seq='AGTCAGCTGCTA')
+        print(viterbi_seq)
+        print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+
+
 
     ####################################################################
 
@@ -391,12 +462,38 @@ if __name__ == '__main__':
     # TODO: Chnage this data structure if we have time!
     gen_arr = [[gen1, ann1], [gen2, ann2], [gen3, ann3], [gen4, ann4], [gen5, ann5]]
     char_arr = ['C', 'R', 'N']
-    # print(list(gen_arr[0][1].items())[0][1][0])
+    #print(list(gen_arr[0][0].items())[0][0])
 
-    result = extract_seq(list(gen_arr[0][0].items())[0][1], list(gen_arr[0][1].items())[0][1])
-    c_list = result[0]
-    r_list = result[1]
-    n_list = result[2]
+    #c_list, r_list, n_list, start_codons_c, end_codons_c, start_codons_r, end_codons_r
+    c_list, r_list, n_list, c_start, c_end, r_start, r_end = [],[],[],[],[],[],[]
+    trans_counts = np.zeros(shape=(3, 3))
+    emission_counts = np.zeros(shape=(3,4))
+
+    for i in range(5):
+        seq, ann = list(gen_arr[i][0].items())[0][1], list(gen_arr[i][1].items())[0][1]
+        result = extract_seq(seq, ann)
+        c_list.append(result[0])
+        r_list.append(result[1])
+        n_list.append(result[2])
+        c_start.append(result[3])
+        c_end.append(result[4])
+        r_start.append(result[5])
+        r_end.append(result[6])
+
+        trans_counts += create_count_matrix(seq, ann)
+        emission_counts += make_emission_count(seq, ann)
+
+    trans_mat = make_trans(trans_counts)
+    em_mat = make_emission_prob_matrix(emission_counts)
+
+    hmm = make_hmm(trans_mat,em_mat.transpose())
+
+
+
+
+
+
+
     # print(c_list)
 
     # 1. Load seqs and ann
