@@ -256,6 +256,15 @@ def make_log(trans_matrix, emission_matrix, init_prob):
 
     return trans_probs, emission_probs, init_prob_log
 
+def num_to_char(nums):
+    #S = c_start, E = c_end, Z = r_start, F = r_end
+    dict = ['N']+['S']*3+['C']+['E']*3+['Z']*3+['R']+['F']*3
+    output = []
+    for i in nums:
+        output.append(dict[i])
+    return output
+
+
 
 def viterbi(trans_matrix, emission_matrix, init_prob, seq):
 
@@ -464,4 +473,4 @@ if __name__ == '__main__':
 
         hmm = make_hmm(trans_mat, em_mat.transpose())
         viterbi_seq = viterbi(hmm[0], hmm[1], init_prob=[1/15, 1/15, 1/15, 1/15, 1/15, 1/15, 1/15, 1/15, 1/15, 1/15, 1/15, 1/15, 1/15, 1/15, 1/15], seq='CAGTACGTACGTACGATCGATCGAT')
-        print(viterbi_seq)
+        print(num_to_char(viterbi_seq))
