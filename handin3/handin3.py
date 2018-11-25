@@ -272,6 +272,14 @@ def num_to_char(nums):
         output.append(dict[i])
     return output
 
+def num_to_char_3state(nums):
+    #S = c_start, E = c_end, Z = r_start, F = r_end
+    dict = ['N']+['C']*3+['C']+['C']*3+['R']*3+['R']+['R']*3
+    output = []
+    for i in nums:
+        output.append(dict[i])
+    return output
+
 
 
 def viterbi(trans_matrix, emission_matrix, init_prob, seq):
@@ -524,8 +532,12 @@ if __name__ == '__main__':
         em_mat = make_emission_prob_matrix(emission_counts)
 
         hmm = make_hmm(trans_mat, em_mat.transpose())
-        results = viterbi_test(hmm[0], hmm[1],[1]+[0]*14,list(gen_arr[0][0].items())[0][1][0:1000])
-        print(''.join(num_to_char(results[0])))
+        for i in range(1,5):
+            results = viterbi_test(hmm[0], hmm[1],[1]+[0]*14,list(gen_arr[i][0].items())[0][1])
+        #print(''.join(num_to_char(results[0])))
+            decoding_gen = open("decoding_gen"+str(i),'x')
+            decoding_gen.write(''.join(num_to_char_3state(results[0])))
+
         #print(results)
        # print[results[1]]
         #matprint(hmm[0])
