@@ -505,39 +505,68 @@ if __name__ == '__main__':
         gen5 = read_fasta_file(full_path + 'data-handin3/genome5.fa')
         ann5 = read_fasta_file(full_path + 'data-handin3/true-ann5.fa')
 
+        gen6 = read_fasta_file(full_path + 'data-handin3/genome6.fa')
+        gen7 = read_fasta_file(full_path + 'data-handin3/genome7.fa')
+        gen8 = read_fasta_file(full_path + 'data-handin3/genome8.fa')
+        gen9 = read_fasta_file(full_path + 'data-handin3/genome9.fa')
+        gen10 = read_fasta_file(full_path + 'data-handin3/genome10.fa')
+
         gen_arr = [[gen1, ann1], [gen2, ann2], [gen3, ann3], [gen4, ann4], [gen5, ann5]]
+
+        unknown_arr = [gen6,gen7,gen8,gen9,gen10]
         char_arr = ['C', 'R', 'N']
         # print(list(gen_arr[0][0].items())[0][0])
 
         # c_list, r_list, n_list, start_codons_c, end_codons_c, start_codons_r, end_codons_r
-        c_list, r_list, n_list, c_start, c_end, r_start, r_end = [], [], [], [], [], [], []
-        trans_counts = np.zeros(shape=(3, 3))
-        emission_counts = np.zeros(shape=(3, 4))
 
-        for i in range(5):
-            seq, ann = list(gen_arr[i][0].items())[0][1], list(gen_arr[i][1].items())[0][1]
-            result = extract_seq(seq, ann)
-            c_list.append(result[0])
-            r_list.append(result[1])
-            n_list.append(result[2])
-            c_start.append(result[3])
-            c_end.append(result[4])
-            r_start.append(result[5])
-            r_end.append(result[6])
+        trans_list =  []
+        em_list = []
 
-            trans_counts += create_count_matrix(seq, ann)
-            emission_counts += make_emission_count(seq, ann)
+        for n in range(5):
 
-        trans_mat = make_trans(trans_counts)
-        em_mat = make_emission_prob_matrix(emission_counts)
+            c_list, r_list, n_list, c_start, c_end, r_start, r_end = [], [], [], [], [], [], []
+            trans_counts = np.zeros(shape=(3, 3))
+            emission_counts = np.zeros(shape=(3, 4))
 
+            for i in [x for x in range(5) if x not in [n]]:
+                seq, ann = list(gen_arr[i][0].items())[0][1], list(gen_arr[i][1].items())[0][1]
+                result = extract_seq(seq, ann)
+                c_list.append(result[0])
+                r_list.append(result[1])
+                n_list.append(result[2])
+                c_start.append(result[3])
+                c_end.append(result[4])
+                r_start.append(result[5])
+                r_end.append(result[6])
+
+                trans_counts += create_count_matrix(seq, ann)
+                emission_counts += make_emission_count(seq, ann)
+
+            trans_mat = make_trans(trans_counts)
+            em_mat = make_emission_prob_matrix(emission_counts)
+
+            trans_list.append(trans_mat)
+            em_list.append(em_mat)
+
+            hmm = make_hmm(trans_mat, em_mat.transpose())
+            results = viterbi_test(hmm[0], hmm[1], [1]+[0]*14, list(list(gen_arr[n][0].items())[0][1]))
+
+            decoding_gen = open("decoding_gen" + str(n), 'x')
+            decoding_gen.write(''.join(num_to_char_3state(results[0])))
+
+        trans_mat = sum(trans_list)/5
+        em_mat = sum(em_list)/5
         hmm = make_hmm(trans_mat, em_mat.transpose())
-        for i in range(1,5):
-            results = viterbi_test(hmm[0], hmm[1],[1]+[0]*14,list(gen_arr[i][0].items())[0][1])
+
+        for i in range(6,11):
+            results = viterbi_test(hmm[0], hmm[1],[1]+[0]*14,list(unknown_arr[i-6].items())[0][1])
         #print(''.join(num_to_char(results[0])))
             decoding_gen = open("decoding_gen"+str(i),'x')
             decoding_gen.write(''.join(num_to_char_3state(results[0])))
 
+
+        np.savetxt('trans_mat',hmm[0],delimiter=',',fmt='%1.3f')
+        np.savetxt('em_mat', hmm[1], delimiter=',', fmt='%1.3f')
         #print(results)
        # print[results[1]]
         #matprint(hmm[0])
