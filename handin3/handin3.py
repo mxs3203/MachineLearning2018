@@ -472,5 +472,5 @@ if __name__ == '__main__':
         em_mat = make_emission_prob_matrix(emission_counts)
 
         hmm = make_hmm(trans_mat, em_mat.transpose())
-        viterbi_seq = viterbi(hmm[0], hmm[1], init_prob=[1/15, 1/15, 1/15, 1/15, 1/15, 1/15, 1/15, 1/15, 1/15, 1/15, 1/15, 1/15, 1/15, 1/15, 1/15], seq='CAGTACGTACGTACGATCGATCGAT')
-        print(num_to_char(viterbi_seq))
+        viterbi_seq = viterbi(hmm[0], hmm[1],[1]+[0]*14,list(gen_arr[0][0].items())[0][1][0:1000])
+        print(''.join(num_to_char(viterbi_seq)))
