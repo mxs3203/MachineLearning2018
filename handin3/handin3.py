@@ -269,6 +269,7 @@ def viterbi(trans_matrix, emission_matrix, init_prob, seq):
 
     score_matrix[0,: ] = init_prob * emission_matrix[seq[0], :]
 
+
     for charInSeq in range(1,seqLen):
         for hidState in range(0,nHiddenStates):
             previousRow = score_matrix[charInSeq-1, :]
