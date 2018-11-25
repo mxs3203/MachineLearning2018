@@ -488,7 +488,7 @@ if __name__ == '__main__':
 
     hmm = make_hmm(trans_mat,em_mat.transpose())
 
-
+    print(viterbi(hmm[0], hmm[1], [1]+[0]*14, list(gen_arr[0][0].items())[0][1]))
 
 
 
