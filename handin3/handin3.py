@@ -46,7 +46,7 @@ def create_count_matrix(seq, ann):
     count_mat = np.zeros(shape=(3, 3))
     for i in range(3):
         for n in range(3):
-            count_mat += count_char(seq, char_arr[i], char_arr[n])
+            count_mat += count_char(seq,char_arr[i],char_arr[n])
 
     return (count_mat)
 
@@ -67,6 +67,7 @@ def chk_next(ann, i):
     return False
 
 
+# TODO:
 def make_reverse_complement(seq):
     seq = seq.upper()
     print(seq)
@@ -139,7 +140,6 @@ def make_emission_prob_matrix(count_matrix_emission):
             emission_matrix[i, x] = count_matrix_emission[i, x] / sum(count_matrix_emission[i])
     return emission_matrix
 
-
 def ky_make_emission_count(seq, ann):
     c_list, r_list, n_list = extract_seq(seq, ann)
     c_start_codons = []
@@ -147,21 +147,21 @@ def ky_make_emission_count(seq, ann):
     r_start_codons = []
     r_stop_codons = []
     c_new = []
-    r_new = []
-    c_counts = [0, 0, 0, 0]  # ATCG
+    r_new= []
+    c_counts = [0, 0, 0, 0] #ATCG
     r_counts = [0, 0, 0, 0]
     n_counts = [0, 0, 0, 0]
 
     for x in range(0, len(c_list)):
         i = c_list[x]
         c_start_codons.append(i[0:3])
-        c_stop_codons.append(i[len(i) - 3, len(i)])
+        c_stop_codons.append(i[len(i)-3, len(i)])
         c_new.append(i[3:-3])
 
     for x in range(0, len(r_list)):
         i = r_list[x]
         r_start_codons.append(i[0:3])
-        r_stop_codons.append(i[len(i) - 3, len(i)])
+        r_stop_codons.append(i[len(i)-3, len(i)])
         r_list.new(i[3:-3])
 
     for i in c_new:
@@ -182,48 +182,47 @@ def ky_make_emission_count(seq, ann):
         n_counts[2] += i.count('C')
         n_counts[3] += i.count('G')
 
-    for i in range(0, len(c_counts)):
+    for i in range(0,len(c_counts)):
         length = sum(c_counts)
-        c_counts[i] = c_counts[i] / length
+        c_counts[i] = c_counts[i]/length
 
-    for i in range(0, len(r_counts)):
+    for i in range(0,len(r_counts)):
         length = sum(r_counts)
-        r_counts[i] = r_counts[i] / length
+        r_counts[i] = r_counts[i]/length
 
-    for i in range(0, len(n_counts)):
+    for i in range(0,len(n_counts)):
         length = sum(n_counts)
-        n_counts[i] = n_counts[i] / length
+        n_counts[i] = n_counts[i]/length
 
     return Counter(c_start_codons), Counter(r_start_codons), c_counts, r_counts, n_counts
 
-
 def make_hmm(old_trans, old_emat):
-    new_trans = np.zeros(shape=(15, 15))
-    for i in range(14):
-        new_trans[i, i + 1] = 1
-    new_trans[0, 0] = old_trans[2, 2]
-    new_trans[7, 0] = old_trans[0, 2]
-    new_trans[14, 0] = old_trans[1, 2]
-    new_trans[14, 1] = old_trans[1, 0]
-    new_trans[0, 1] = old_trans[2, 0]
-    new_trans[4, 4] = old_trans[0, 0]
-    new_trans[4, 5] = old_trans[0, 1] + old_trans[0, 2]
-    new_trans[0, 8] = old_trans[2, 1]
-    new_trans[7, 8] = old_trans[0, 1]
-    new_trans[11, 11] = old_trans[1, 1]
-    new_trans[11, 12] = old_trans[1, 0] + old_trans[1, 2]
 
-    new_emat = np.zeros(shape=(4, 15))
-    new_emat[0,] = [0, 1] + [0] * 4 + [1, 1] + [0] * 2 + [1] + [0] * 2 + [1, 0]
-    new_emat[1,] = [0] * 2 + [1] + [0] * 2 + [1] + [0] * 2 + [1, 1] + [0] * 4 + [1]
-    new_emat[2,] = [0] * 12 + [1] + [0, 0]
-    new_emat[3,] = [0] * 3 + [1] + [0] * 11
-    new_emat[:, 0] = old_emat[:, 0]
-    new_emat[:, 4] = old_emat[:, 1]
-    new_emat[:, 11] = old_emat[:, 2]
+    new_trans = np.zeros(shape=(15,15))
+    for i in range(14):
+        new_trans[i,i+1] = 1
+    new_trans[0,0] = old_trans[2,2]
+    new_trans[7,0] = old_trans[0,2]
+    new_trans[14,0] = old_trans[1,2]
+    new_trans[14,1] = old_trans[1,0]
+    new_trans[0,1] = old_trans[2,0]
+    new_trans[4,4] = old_trans[0,0]
+    new_trans[4,5] = old_trans[0,1] + old_trans[0,2]
+    new_trans[0,8] = old_trans[2,1]
+    new_trans[7,8] = old_trans[0,1]
+    new_trans[11,11] = old_trans[1,1]
+    new_trans[11,12] = old_trans[1,0] + old_trans[1,2]
+
+    new_emat = np.zeros(shape=(4,15))
+    new_emat[0,] = [0,1]+[0]*4+[1,1]+[0]*2+[1]+[0]*2+[1,0]
+    new_emat[1,] = [0]*2+[1]+[0]*2+[1]+[0]*2+[1,1]+[0]*4+[1]
+    new_emat[2,] = [0]*12+[1]+[0,0]
+    new_emat[3,] = [0]*3+[1]+[0]*11
+    new_emat[:,0] = old_emat[:,0]
+    new_emat[:,4] = old_emat[:,1]
+    new_emat[:,11] = old_emat[:,2]
 
     return new_trans, new_emat
-
 
 def log(x):
     if x == 0:
@@ -404,6 +403,7 @@ if __name__ == '__main__':
         print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
         emis_cnt = make_emission_count(seq='CTGACGTCAGCTACGTACGACATGCGTATTC',
                                        ann='NNNNNNNNNNNCCCCCCCCNNNRRRRRRRRR')
+        print(emis_cnt)
         emis_prob = make_emission_prob_matrix(emis_cnt)
         sample = [[{'genome1': "CTGACGTCAGCTACGTACGACATGCGTATTC"}, {'true-ann1': "NNNNNNNNNNNCCCCCCCCNNNRRRRRRRRR"}]]
         trans_cnt = create_count_matrix(sample, char_arr)
