@@ -117,7 +117,7 @@ def viterbi(init_probs, trans_probs, emission_probs, seq):
     N = len(w[0])
     K = len(w)
 
-    # p = max(w[i][-1] for i in range(len(w)))
+    #p = max(w[i][-1] for i in range(len(w)))
     backtrack = [0 for k in range(N)]
 
     backtrack[N - 1] = max(range(K), key=lambda k: w[k][N - 1])
@@ -243,7 +243,8 @@ def tranfromListToDict(list):
     return dict
 
 
-def replaceAnnotatedSeq(ann, forModeling=True):
+def replaceAnnotatedSeq(ann, forModeling=True): # for modeling will return states we use for modeling if true
+                                                # if false, it will do the opposite, transform it back to original 3 state sequence
     new_ann = list(ann)  # make it a list of chars so I can replace specific positions(with string you cant)
     if forModeling:
         for i in range(0, len(ann) - 1):
@@ -279,11 +280,11 @@ def replaceAnnotatedSeq(ann, forModeling=True):
 
 def create_count_matrix(ann):
     #                           Start C, end C, start R, end R, C to R = K, R to C = L
-    char_arr = ['C', 'R', 'N', 'X', 'Y', 'Z', 'W', 'K', 'L']
-    count_mat = np.zeros(shape=(9, 9))
+    char_arr = ['C', 'R', 'N', 'X', 'Y', 'Z', 'W']
+    count_mat = np.zeros(shape=(7,7))
 
-    for i in range(9):
-        for n in range(9):
+    for i in range(7):
+        for n in range(7):
             count_mat[i, n] = count_char(ann, char_arr[i], char_arr[n])
 
     return count_mat
@@ -291,7 +292,7 @@ def create_count_matrix(ann):
 
 def transformAnnToIndexes(ann, opposite=False):
     new_seq = '' # those indexes follow trans prob indexes
-    dict = {'C': 0, 'R': 1, 'N': 2, 'X': 3, 'Y': 4, 'Z': 5, 'W': 6, 'K': 7, 'L': 8}
+    dict = {'C': 0, 'R': 1, 'N': 2, 'X': 3, 'Y': 4, 'Z': 5, 'W': 6}
     if opposite:
         for char in ann:
             for i in dict.keys():  # for letters
@@ -343,7 +344,7 @@ if __name__ == '__main__':
     unknown_arr = [gen6['genome6'], gen7['genome7'], gen8['genome8'], gen9['genome9'], gen10['genome10']]
 
     emiss_count = np.zeros((7, len(allPossibleBases(size=3))))
-    trans_count = np.ones((9, 9))
+    trans_count = np.ones((7,7))
     for i in gen_arr:
 
         c_list, r_list, n_list, start_codons_c, end_codons_c, start_codons_r, end_codons_r = extract_seq(i[0],
@@ -379,10 +380,10 @@ if __name__ == '__main__':
 
         ann_with_intermedian_states = replaceAnnotatedSeq(i[1], forModeling=True)
         trans_matrix = create_count_matrix(ann_with_intermedian_states)
-        print("C           R      N   SC(X) EC(Y) SR(z) ER(W) C->R(K)  R->C(L)")
-        matprint(trans_matrix)
+        #print("C           R      N   SC(X) EC(Y) SR(z) ER(W) ")
+        #matprint(trans_matrix)
         trans_count = updateTransMatrix(trans_count, trans_matrix)
-        print("C           R      N   SC(X) EC(Y) SR(z) ER(W) C->R(K)  R->C(L)")
+        print("C           R      N   SC(X) EC(Y) SR(z) ER(W) ")
         matprint(trans_count)
 
     emis_prob_matrix = np.divide(emiss_count,
@@ -394,13 +395,13 @@ if __name__ == '__main__':
                                   out=np.zeros_like(trans_count),
                                   where=trans_count.sum(axis=1, keepdims=True) != 0)
     # start with N
-    init = [0, 0, 1, 0, 0, 0, 0, 0, 0]
+    init = [0, 0, 1, 0, 0, 0, 0]
     # Let try to get results for first annotated genome...
 
     print(transformAnnToIndexes(gen_arr[0][1]))
-    # viterbi_seq = viterbi(init_probs=init,
-    #                       trans_probs=trans_prob_matrix,
-    #                       emission_probs=emis_prob_matrix,
-    #                       seq=gen_arr[0][0])
-    #
-    # print_all(gen_arr[0][1], viterbi_seq)
+    viterbi_seq = viterbi(init_probs=init,
+                          trans_probs=trans_prob_matrix,
+                          emission_probs=emis_prob_matrix,
+                          seq=gen_arr[0][0])
+
+    print_all(gen_arr[0][1], viterbi_seq)
