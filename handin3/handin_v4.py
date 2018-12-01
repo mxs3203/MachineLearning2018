@@ -101,6 +101,48 @@ def log(x):
     return math.log(x)
 
 
+def viterbi_test(trans_mat, emat, pi, seq):
+    char_dict = {'A': 0, 'T': 1, 'C': 2, 'G': 3}
+
+    with np.errstate(divide='ignore'):
+        pi = np.log(pi)
+        trans_mat = np.log(trans_mat)
+        emat = np.log(emat)
+
+    lenSeq = len(seq)
+    states = len(trans_mat)
+
+    MaxArrow = np.zeros(shape=(states, lenSeq))
+
+    MaxArrow.fill(float('-inf'))
+
+    backtrack_seq = [0] * lenSeq
+    score_matrix = np.zeros(shape=(states, lenSeq))
+    score_matrix.fill(float('-inf'))
+
+    score_matrix[:, 0] = pi + emat[char_dict[seq[0]],]
+
+    for i in range(1, lenSeq):
+        for x in range(states):
+            prevCol = score_matrix[:, i - 1]
+            em_prob = emat[char_dict[seq[i]], x]
+            trans_prob = trans_mat[x, :]
+            product = prevCol + trans_prob + [em_prob] * states
+
+            score_matrix[x, i] = np.max(product)
+            MaxArrow[x, i] = np.argmax(product)
+
+    backtrack_seq[lenSeq - 1] = np.argmax(score_matrix[:, lenSeq - 1])
+
+    for i in range(lenSeq - 1, 1, -1):
+        # print(i)
+        maxa = MaxArrow[backtrack_seq[i], i]
+        # print(maxa)
+        backtrack_seq[i - 1] = int(maxa)
+
+    return backtrack_seq, score_matrix
+
+
 def viterbi(init_probs, trans_probs, emission_probs, seq):
     k = len(init_probs)
     n = len(seq)
@@ -117,7 +159,7 @@ def viterbi(init_probs, trans_probs, emission_probs, seq):
     N = len(w[0])
     K = len(w)
 
-    #p = max(w[i][-1] for i in range(len(w)))
+    # p = max(w[i][-1] for i in range(len(w)))
     backtrack = [0 for k in range(N)]
 
     backtrack[N - 1] = max(range(K), key=lambda k: w[k][N - 1])
@@ -125,7 +167,6 @@ def viterbi(init_probs, trans_probs, emission_probs, seq):
     for i in range(N - 2, -1, -1):
         backtrack[i] = max(range(K), key=lambda k:
         log(emission_probs[backtrack[i + 1]][seq[i + 1]]) + w[k][i] + log(trans_probs[k][backtrack[i + 1]]))
-        print(backtrack[i])
 
     return backtrack
 
@@ -243,15 +284,13 @@ def tranfromListToDict(list):
     return dict
 
 
-def replaceAnnotatedSeq(ann, forModeling=True): # for modeling will return states we use for modeling if true
-                                                # if false, it will do the opposite, transform it back to original 3 state sequence
+# function replaces 3 states sequences with 7 states sequence which is used for modeling
+# Or it can do the opposite (7states to 3states), which is used for comparison to true seq(not modeling)
+def replaceAnnotatedSeq(ann, forModeling=True):  # for modeling will return states we use for modeling if true
+    # if false, it will do the opposite, transform it back to original 3 state sequence
     new_ann = list(ann)  # make it a list of chars so I can replace specific positions(with string you cant)
     if forModeling:
         for i in range(0, len(ann) - 1):
-            if ann[i] == 'C' and ann[i + 1] == 'R':  # C to R = k,
-                new_ann[i + 1] = 'K'
-            if ann[i] == 'R' and ann[i + 1] == 'C':  # R to C = l
-                new_ann[i + 1] = 'L'
             if ann[i] == 'C' and ann[i + 1] == 'N':  # end C = y
                 new_ann[i + 1] = 'Y'
             if ann[i] == 'N' and ann[i + 1] == 'C':  # Start C = x
@@ -262,10 +301,6 @@ def replaceAnnotatedSeq(ann, forModeling=True): # for modeling will return state
                 new_ann[i + 1] = 'W'
     else:
         for i in range(1, len(ann) - 1):
-            if ann[i] == 'K':  # C to R
-                new_ann[i - 1] = 'C'
-            if ann[i] == 'L':  # R to C
-                new_ann[i - 1] = 'R'
             if ann[i] == 'Y':  # end C
                 new_ann[i - 1] = 'C'
             if ann[i] == 'X':  # start C
@@ -281,7 +316,7 @@ def replaceAnnotatedSeq(ann, forModeling=True): # for modeling will return state
 def create_count_matrix(ann):
     #                           Start C, end C, start R, end R, C to R = K, R to C = L
     char_arr = ['C', 'R', 'N', 'X', 'Y', 'Z', 'W']
-    count_mat = np.zeros(shape=(7,7))
+    count_mat = np.zeros(shape=(7, 7))
 
     for i in range(7):
         for n in range(7):
@@ -290,16 +325,23 @@ def create_count_matrix(ann):
     return count_mat
 
 
-def transformAnnToIndexes(ann, opposite=False):
-    new_seq = '' # those indexes follow trans prob indexes
+def translateObs_toindex(obs):
+    mapping = {'A': 0, 'C': 1, 'G': 2, 'T': 3}
+    return [mapping[symbol.upper()] for symbol in obs]
+
+
+# The function will transform sequence to a indexes
+def transformAnnToIndexes(ann):
     dict = {'C': 0, 'R': 1, 'N': 2, 'X': 3, 'Y': 4, 'Z': 5, 'W': 6}
-    if opposite:
-        for char in ann:
-            for i in dict.keys():  # for letters
-                if char == i:
-                    new_seq += i
-    else:
-        return [dict[symbol.upper()] for symbol in ann.upper()]
+
+    return [dict[symbol.upper()] for symbol in ann.upper()]
+
+
+# The function will transform sequence to a indexes
+def transformIndexesToAnnSeq(ann):
+    dict = {0: 'C', 1: 'R', 2: 'N', 3: 'X', 4: 'Y', 5: 'Z', 6: 'W'}
+
+    return [dict[symbol] for symbol in ann]
 
 
 def count_char(seq, from_char, to_char):
@@ -311,7 +353,7 @@ def count_char(seq, from_char, to_char):
 
 
 if __name__ == '__main__':
-    char_arr = ['C', 'R', 'N']
+
     # ################# Unit Testing ####################################
 
     full_path = 'C:/Users/Ky/Desktop/ml18/handin3/'
@@ -344,7 +386,7 @@ if __name__ == '__main__':
     unknown_arr = [gen6['genome6'], gen7['genome7'], gen8['genome8'], gen9['genome9'], gen10['genome10']]
 
     emiss_count = np.zeros((7, len(allPossibleBases(size=3))))
-    trans_count = np.ones((7,7))
+    trans_count = np.ones((7, 7))
     for i in gen_arr:
 
         c_list, r_list, n_list, start_codons_c, end_codons_c, start_codons_r, end_codons_r = extract_seq(i[0],
@@ -380,11 +422,11 @@ if __name__ == '__main__':
 
         ann_with_intermedian_states = replaceAnnotatedSeq(i[1], forModeling=True)
         trans_matrix = create_count_matrix(ann_with_intermedian_states)
-        #print("C           R      N   SC(X) EC(Y) SR(z) ER(W) ")
-        #matprint(trans_matrix)
+        # print("C           R      N   SC(X) EC(Y) SR(z) ER(W) ")
+        # matprint(trans_matrix)
         trans_count = updateTransMatrix(trans_count, trans_matrix)
-        print("C           R      N   SC(X) EC(Y) SR(z) ER(W) ")
-        matprint(trans_count)
+        # print("C           R      N   SC(X) EC(Y) SR(z) ER(W) ")
+        # matprint(trans_count)
 
     emis_prob_matrix = np.divide(emiss_count,
                                  emiss_count.sum(axis=1, keepdims=True),
@@ -394,14 +436,26 @@ if __name__ == '__main__':
                                   trans_count.sum(axis=1, keepdims=True),
                                   out=np.zeros_like(trans_count),
                                   where=trans_count.sum(axis=1, keepdims=True) != 0)
+    print("C                  R           N           SC(X)         EC(Y)         SR(z)          ER(W) ")
+    matprint(trans_prob_matrix)
     # start with N
     init = [0, 0, 1, 0, 0, 0, 0]
     # Let try to get results for first annotated genome...
-
-    print(transformAnnToIndexes(gen_arr[0][1]))
-    viterbi_seq = viterbi(init_probs=init,
+    raw_viterbi = viterbi(init_probs=init,
                           trans_probs=trans_prob_matrix,
                           emission_probs=emis_prob_matrix,
-                          seq=gen_arr[0][0])
+                          seq=translateObs_toindex(gen_arr[0][0]))
+    # vterbi returns numbers corresponding to 7 states
 
-    print_all(gen_arr[0][1], viterbi_seq)
+    statesSeq = transformIndexesToAnnSeq(raw_viterbi)  # transform indexes to states(chars)
+    decodedGenome = replaceAnnotatedSeq(statesSeq, forModeling=False)  # for modeling is with 7 states(chars) ,without with 3
+
+    print_all(gen_arr[0][1], decodedGenome)
+    decoding_gen = open("decoding_gen" + str(1) + '.fa', 'x')
+    decoding_gen.write("> pred-ann" + str(1) + "\n" + str(raw_viterbi) + "\n" + str(statesSeq) + "\n" + decodedGenome)
+
+    raw_viterbi = viterbi_test(trans_mat=trans_prob_matrix,
+                               pi=init,
+                               emat=emis_prob_matrix,
+                                seq=translateObs_toindex(gen_arr[0][0]))
+    print(raw_viterbi)

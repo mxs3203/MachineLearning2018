@@ -485,4 +485,5 @@ if __name__ == '__main__':
     print(viterbi_seq)
     print_all(ann1['true-ann1'], viterbi_seq)
 
-    # predict(init_probs, trans_probs, emiss_probs, unknown_arr)
+    # decoding_gen = open("decoding_gen" + str(counter) + '.fa', 'x')
+    # decoding_gen.write("> pred-ann" + str(counter) + "\n" + viterbi_seq)
