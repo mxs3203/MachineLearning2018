@@ -341,7 +341,6 @@ def make_log(trans_matrix, emission_matrix, init_prob):
 
 def num_to_char(nums):
     # S = c_start, E = c_end, Z = r_start, F = r_end
-    dict = {0 : 'N',1: 3*'something'}
     dict = ['N'] + ['S'] * 3 + ['C'] + ['E'] * 3 + ['Z'] * 3 + ['R'] + ['F'] * 3
     output = []
     for i in nums:
@@ -466,6 +465,7 @@ def cv(list_of_genAnn):
 
         hmm = make_hmm(trans_mat, em_mat.transpose())
         results = viterbi_test(hmm[0], hmm[1], [1] + [0] * 14, i[0])
+        print(results[0])
         viterbi_seq = num_to_char_3state(results[0])
 
         # decoding_gen = open("decoding_gen" + str(counter) + '.fa', 'x')
@@ -485,105 +485,6 @@ def predict(unknown, trans_mat, emis_mat, cv_init_prob):
         decoding_gen = open("decoding_gen" + str(counter) + '.fa', 'x')
         decoding_gen.write("> pred-ann" + str(counter) + "\n" + viterbi_seq)
         counter += 1
-
-
-def test_exstract_seq(seq, ann):
-    print('-------------Starting Test  extract Seq with:------------- ')
-    print(seq)
-    print(ann)
-    print('Extracting sequences based on annotation: ')
-    result = extract_seq(seq, ann)
-    print("C: ", result[0])
-    print("R: ", result[1])
-    print("N: ", result[2])
-    print("C_start:", result[3])
-    print("C_end", result[4])
-    print("R_start:", result[5])
-    print("R_end", result[6])
-    assert result[0] == ['GT']
-    assert result[1] == ['GT']
-    assert result[2] == ['CTGACGTCAGC', 'ACA', 'C']
-    assert result[3] == ['TAC']
-    assert result[4] == ['ACG']
-    assert result[5] == ['TGC']
-    assert result[6] == ['ATT']
-
-    print('-------------Test Extracting sequences Success!------------- \n\n')
-
-
-def test_count_mat(gen_arr, char_arr):
-    print('-------------Starting Test Count Matrix with: -------------')
-    print(gen_arr)
-    print(char_arr)
-    print('Creating count matrix based on observations: ')
-
-    result = create_count_matrix(gen_arr, char_arr)
-    expected = [[11., 1., 0.],
-                [0., 11., 1.],
-                [1., 0., 11.]]
-    print(result)
-    # assert result[0][0] == expected[0][0], result[0][1] == expected[0][1]
-    # assert result[0][2] == expected[0][2], result[1][0] == expected[1][0]
-    # assert result[2][0] == expected[2][0], result[2][1] == expected[2][1]
-    print("-------------Test Count Matrix success! -------------\n\n")
-
-    return result
-
-
-def test_make_trans(count_mat):
-    print('-------------Starting Trans Prob Matrix with: -------------')
-    print(count_mat)
-    print('Creating trans prob matrix based on count matrix: ')
-
-    result = make_trans(count_mat)
-    expected = [[11. / 12, 1 / 12., 0.],
-                [0., 11 / 12., 1. / 12],
-                [1. / 12, 0., 11. / 12]]
-    # assert result[0][0] == expected[0][0], result[0][1] == expected[0][1]
-    # assert result[0][2] == expected[0][2], result[1][0] == expected[1][0]
-    # assert result[2][0] == expected[2][0], result[2][1] == expected[2][1]
-    print("-------------Test Trans Prob Matrix success! -------------\n\n")
-
-
-def test_count_char(seq, from_char, to_char, exp):
-    print('-------------Starting count char with: -------------')
-    print(seq)
-    print(from_char)
-    print(to_char)
-    print('Counting chars, from - to: ')
-
-    result = count_char(seq, from_char, to_char)
-    print(result)
-    assert result == exp
-
-    print("------------- Test Count Char success! -------------\n\n")
-
-
-def test_emis_matrix(seq, ann):
-    print('-------------Starting Emission matrix Matrix: -------------')
-
-    print(seq)
-    print(ann)
-    print("rows = N C R")
-    print("cols = A C G T")
-    emis_count = make_emission_count(seq=seq,
-                                     ann=ann)
-
-    print(emis_count)
-
-    print(make_emission_prob_matrix(emis_count))
-
-    assert emis_count[0][0] == 4
-    assert emis_count[0][1] == 5
-    assert emis_count[0][2] == 3
-    assert emis_count[0][3] == 3
-
-    assert emis_count[1][0] == 2
-    assert emis_count[1][1] == 2
-    assert emis_count[1][2] == 2
-    assert emis_count[1][3] == 3
-
-    print("------------- Test Emis matrix success! -------------\n\n")
 
 
 if __name__ == '__main__':

@@ -278,7 +278,7 @@ def cv(list_of_genAnn):
                 c_list, r_list, n_list, start_codons_c, end_codons_c, start_codons_r, end_codons_r = extract_seq(list_of_genAnn[train_index][0], list_of_genAnn[train_index][1])
                 # so states are: c,r,n,sc,ec,sr,er
 
-                # TODO: how to include start and stop codons in C and R?
+                # TODO: how to include start and stop codons in C and R? Since this is plain 3x4 model
                 c_counts = [0, 0, 0, 0]
                 r_counts = [0, 0, 0, 0]
                 n_counts = [0, 0, 0, 0]
@@ -312,9 +312,9 @@ def cv(list_of_genAnn):
                                       out=np.zeros_like(empty_model_trans),
                                       where=empty_model_trans.sum(axis=1, keepdims=True) != 0)
         empty_model_emis = np.divide(empty_model_emis,
-                                     empty_model_emis.sum(axis=0, keepdims=True),
+                                     empty_model_emis.sum(axis=1, keepdims=True),
                                      out=np.zeros_like(empty_model_emis),
-                                     where=empty_model_emis.sum(axis=0, keepdims=True) != 0)
+                                     where=empty_model_emis.sum(axis=1, keepdims=True) != 0)
         print(empty_model_emis)
         print(empty_model_trans)
 
