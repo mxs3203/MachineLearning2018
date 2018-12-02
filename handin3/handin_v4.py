@@ -180,7 +180,12 @@ def viterbi(init_probs, trans_probs, emission_probs, seq):
         backtrack[i] = max(range(K), key=lambda k:
         log(emission_probs[backtrack[i + 1]][codonToIndex[seqCodons[i + 1]]]) + w[k][i] + log(trans_probs[k][backtrack[i + 1]]))
 
-    return backtrack
+    new_backtrack = []
+    # multiply every state by 3 because we are doing it for codons and we need per char
+    for state in backtrack:
+        for i in range(3):
+            new_backtrack.append(state)
+    return new_backtrack
 
 
 def read_fasta_file(filename):
@@ -463,14 +468,16 @@ if __name__ == '__main__':
                           trans_probs=trans_prob_matrix,
                           emission_probs=emis_prob_matrix,
                           seq=gen_arr[0][0])
-    print(raw_viterbi)
+    print(len(raw_viterbi))
+    print(len(gen_arr[0][1][0:len(gen_arr[0][1])-1]))
+    #print(raw_viterbi)
     # vterbi returns numbers corresponding to 7 states
 
     statesSeq = transformIndexesToAnnSeq(raw_viterbi)  # transform indexes to states(chars)
-    print(statesSeq)
+    #print(statesSeq)
     decodedGenome = replaceAnnotatedSeq(statesSeq, forModeling=False)  # for modeling is with 7 states(chars) ,without with 3
-    print(decodedGenome)
+    #print(decodedGenome)
 
     decoding_gen = open("decoding_gen" + str(1) + '.fa', 'x')
     decoding_gen.write("> pred-ann" + str(1) + "\n" + str(raw_viterbi) + "\n" + str(statesSeq) + "\n" + decodedGenome)
-    print_all(gen_arr[0][1], decodedGenome)
+    print_all(gen_arr[0][1][0:len(gen_arr[0][1])-1], decodedGenome)
