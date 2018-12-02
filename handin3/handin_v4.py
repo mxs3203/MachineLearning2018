@@ -185,6 +185,7 @@ def viterbi(init_probs, trans_probs, emission_probs, seq):
     for state in backtrack:
         for i in range(3):
             new_backtrack.append(state)
+
     return new_backtrack
 
 
@@ -444,28 +445,47 @@ def cv(gen_arr):
 
 
         # Let try to get results for first annotated genome...
-        raw_viterbi = viterbi(init_probs=init,
-                              trans_probs=trans_prob_matrix,
-                              emission_probs=emis_prob_matrix,
-                              seq=validate_set[0])
-        if len(raw_viterbi) != len(validate_set[1]):
-            # TODO: fix reading frame
-            print("reading frame problem!")
-            diff = abs(len(raw_viterbi) - len(validate_set[1]))
+        acc_list = []
+        v_list = []
+        for i in range(3):
+            print(i)
+            raw_viterbi = viterbi(init_probs=init,
+                                  trans_probs=trans_prob_matrix,
+                                  emission_probs=emis_prob_matrix,
+                                  seq=validate_set[0][i:])
 
-            print(len(raw_viterbi))
-            print(len(validate_set[1][0:len(validate_set[1]) - diff]))
-            # vterbi returns numbers corresponding to 7 states
-            statesSeq = transformIndexesToAnnSeq(raw_viterbi)  # transform indexes to states(chars)
-            decodedGenome = replaceAnnotatedSeq(statesSeq,
-                                                forModeling=False)  # for modeling is with 7 states(chars) ,without with 3
-            print_all(validate_set[1][0:len(validate_set[1]) - diff], decodedGenome)
-        else:
+            statesSeq = transformIndexesToAnnSeq(raw_viterbi)
+            decodedGenome = replaceAnnotatedSeq(statesSeq, forModeling=False)
+            (total, tp, fp, tn, fn) = count_cr(validate_set[1][i:len(decodedGenome)], decodedGenome)
+            acp = 0.25 * (float(tp) / (tp + fn) + float(tp) / (tp + fp) + float(tn) / (tn + fp) + float(tn) / (tn + fn))
+            ac = (acp - 0.5) * 2
+            acc_list.append(ac)
+            v_list.append(decodedGenome)
 
-            # vterbi returns numbers corresponding to 7 states
-            statesSeq = transformIndexesToAnnSeq(raw_viterbi)  # transform indexes to states(chars)
-            decodedGenome = replaceAnnotatedSeq(statesSeq,forModeling=False)  # for modeling is with 7 states(chars) ,without with 3
-            print_all(validate_set[1], decodedGenome)
+        frame = acc_list.index(max(acc_list))
+        decodedGenome = v_list[frame]
+
+        print_all(validate_set[1][frame:len(decodedGenome)], decodedGenome)
+
+
+
+        # if len(raw_viterbi) != len(validate_set[1]):
+        #     # TODO: fix reading frame
+        #     print("reading frame problem!")
+        #     diff = abs(len(raw_viterbi) - len(validate_set[1]))
+        #
+        #     print(len(raw_viterbi))
+        #     print(len(validate_set[1][0:len(validate_set[1]) - diff]))
+        #     # vterbi returns numbers corresponding to 7 states
+        #     statesSeq = transformIndexesToAnnSeq(raw_viterbi)  # transform indexes to states(chars)
+        #     decodedGenome = replaceAnnotatedSeq(statesSeq, forModeling=False)  # for modeling is with 7 states(chars) ,without with 3
+        #     print_all(validate_set[1][0:len(validate_set[1]) - diff], decodedGenome)
+        # else:
+        #
+        #     # vterbi returns numbers corresponding to 7 states
+        #     statesSeq = transformIndexesToAnnSeq(raw_viterbi)  # transform indexes to states(chars)
+        #     decodedGenome = replaceAnnotatedSeq(statesSeq, forModeling=False)  # for modeling is with 7 states(chars) ,without with 3
+        #     print_all(validate_set[1], decodedGenome)
 
 def predict(init, trans, emit, unknownGenomes):
     cnt = 6
@@ -490,7 +510,7 @@ if __name__ == '__main__':
     # ################# Unit Testing ####################################
 
     full_path = 'C:/Users/Ky/Desktop/ml18/handin3/'
-    full_path = 'handin3/'
+    #full_path = 'handin3/'
     gen1 = read_fasta_file(full_path + 'data-handin3/genome1.fa')
     ann1 = read_fasta_file(full_path + 'data-handin3/true-ann1.fa')
 
@@ -575,24 +595,24 @@ if __name__ == '__main__':
 
 
         # Let try to get results for first annotated genome...
-        raw_viterbi = viterbi(init_probs=init,
-                              trans_probs=trans_prob_matrix,
-                              emission_probs=emis_prob_matrix,
-                              seq=gen_arr[0][0])
-        print(len(raw_viterbi))
-        print(len(gen_arr[0][1][0:len(gen_arr[0][1])-1]))
-        #print(raw_viterbi)
-        # vterbi returns numbers corresponding to 7 states
+        for i in range(3):
+            raw_viterbi = viterbi(init_probs=init,
+                                  trans_probs=trans_prob_matrix,
+                                  emission_probs=emis_prob_matrix,
+                                  seq=gen_arr[0][0][i:])
+            print(len(raw_viterbi))
+            print(len(gen_arr[0][1][0:len(gen_arr[0][1]) - 1]))
+            # print(raw_viterbi)
+            # vterbi returns numbers corresponding to 7 states
 
-        statesSeq = transformIndexesToAnnSeq(raw_viterbi)  # transform indexes to states(chars)
-        #print(statesSeq)
-        decodedGenome = replaceAnnotatedSeq(statesSeq, forModeling=False)  # for modeling is with 7 states(chars) ,without with 3
-        #print(decodedGenome)
+            statesSeq = transformIndexesToAnnSeq(raw_viterbi)  # transform indexes to states(chars)
+            # print(statesSeq)
+            decodedGenome = replaceAnnotatedSeq(statesSeq,
+                                                forModeling=False)  # for modeling is with 7 states(chars) ,without with 3
+            # print(decodedGenome)
 
-        decoding_gen = open("decoding_gen" + str(1) + '.fa', 'x')
-        decoding_gen.write("> pred-ann" + str(1) + "\n" + str(raw_viterbi) + "\n" + str(statesSeq) + "\n" + decodedGenome)
-        print_all(gen_arr[0][1][0:len(gen_arr[0][1])-1], decodedGenome)
+            # decoding_gen = open("decoding_gen" + str(1) + '.fa', 'x')
+            # decoding_gen.write("> pred-ann" + str(1) + "\n" + str(raw_viterbi) + "\n" + str(statesSeq) + "\n" + decodedGenome)
+            print_all(gen_arr[0][1][i:len(decodedGenome) + i], decodedGenome)
 
-
-
-        predict(init, trans_prob_matrix, emis_prob_matrix, unknown_arr)
+            predict(init, trans_prob_matrix, emis_prob_matrix, unknown_arr)
