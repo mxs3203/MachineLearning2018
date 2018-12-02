@@ -142,19 +142,31 @@ def viterbi_test(trans_mat, emat, pi, seq):
 
     return backtrack_seq, score_matrix
 
+def splitStringByCodon(seq):
+    list = []
+    for i in range(0, len(seq), 3):
+        if len(seq[i:i + 3]) == 3:
+            list.append(seq[i:i + 3])
+
+    return list
+
 
 def viterbi(init_probs, trans_probs, emission_probs, seq):
+
+    codonToIndex = mapCodonsToIndexes()
+    seqCodons = splitStringByCodon(seq)
+
     k = len(init_probs)
-    n = len(seq)
+    n = len(seqCodons)
 
     w = [[0] * n for _ in range(k)]
 
     for i in range(k):
-        w[i][0] = log(init_probs[i]) + log(emission_probs[i][seq[0]])
+        w[i][0] = log(init_probs[i]) + log(emission_probs[i][codonToIndex[seqCodons[0]]])
 
     for j in range(1, n):
         for i in range(k):
-            w[i][j] = max([log(emission_probs[i][seq[j]]) + w[g][j - 1] + log(trans_probs[g][i]) for g in range(k)])
+            w[i][j] = max([log(emission_probs[i][codonToIndex[seqCodons[j]]]) + w[g][j - 1] + log(trans_probs[g][i]) for g in range(k)])
 
     N = len(w[0])
     K = len(w)
@@ -166,7 +178,7 @@ def viterbi(init_probs, trans_probs, emission_probs, seq):
 
     for i in range(N - 2, -1, -1):
         backtrack[i] = max(range(K), key=lambda k:
-        log(emission_probs[backtrack[i + 1]][seq[i + 1]]) + w[k][i] + log(trans_probs[k][backtrack[i + 1]]))
+        log(emission_probs[backtrack[i + 1]][codonToIndex[seqCodons[i + 1]]]) + w[k][i] + log(trans_probs[k][backtrack[i + 1]]))
 
     return backtrack
 
@@ -351,6 +363,17 @@ def count_char(seq, from_char, to_char):
             count += 1
     return count
 
+def mapCodonsToIndexes():
+    codons = allPossibleBases(size=3)
+    map = {}
+    cnt = 0
+    for codon in codons:
+        map[codon] = cnt
+        cnt = cnt + 1
+
+    return map
+
+
 
 if __name__ == '__main__':
 
@@ -389,8 +412,7 @@ if __name__ == '__main__':
     trans_count = np.ones((7, 7))
     for i in gen_arr:
 
-        c_list, r_list, n_list, start_codons_c, end_codons_c, start_codons_r, end_codons_r = extract_seq(i[0],
-                                                                                                         i[1])
+        c_list, r_list, n_list, start_codons_c, end_codons_c, start_codons_r, end_codons_r = extract_seq(i[0], i[1])
         # Emission matrix
         dict_of_all_codons_c = allPossibleBases(size=3)
         dict_of_all_codons_r = allPossibleBases(size=3)
@@ -422,11 +444,7 @@ if __name__ == '__main__':
 
         ann_with_intermedian_states = replaceAnnotatedSeq(i[1], forModeling=True)
         trans_matrix = create_count_matrix(ann_with_intermedian_states)
-        # print("C           R      N   SC(X) EC(Y) SR(z) ER(W) ")
-        # matprint(trans_matrix)
         trans_count = updateTransMatrix(trans_count, trans_matrix)
-        # print("C           R      N   SC(X) EC(Y) SR(z) ER(W) ")
-        # matprint(trans_count)
 
     emis_prob_matrix = np.divide(emiss_count,
                                  emiss_count.sum(axis=1, keepdims=True),
@@ -436,7 +454,7 @@ if __name__ == '__main__':
                                   trans_count.sum(axis=1, keepdims=True),
                                   out=np.zeros_like(trans_count),
                                   where=trans_count.sum(axis=1, keepdims=True) != 0)
-    print("C                  R           N           SC(X)         EC(Y)         SR(z)          ER(W) ")
+    print("C             R           N           SC(X)         EC(Y)         SR(z)          ER(W) ")
     matprint(trans_prob_matrix)
     # start with N
     init = [0, 0, 1, 0, 0, 0, 0]
@@ -444,18 +462,15 @@ if __name__ == '__main__':
     raw_viterbi = viterbi(init_probs=init,
                           trans_probs=trans_prob_matrix,
                           emission_probs=emis_prob_matrix,
-                          seq=translateObs_toindex(gen_arr[0][0]))
+                          seq=gen_arr[0][0])
+    print(raw_viterbi)
     # vterbi returns numbers corresponding to 7 states
 
     statesSeq = transformIndexesToAnnSeq(raw_viterbi)  # transform indexes to states(chars)
+    print(statesSeq)
     decodedGenome = replaceAnnotatedSeq(statesSeq, forModeling=False)  # for modeling is with 7 states(chars) ,without with 3
+    print(decodedGenome)
 
-    print_all(gen_arr[0][1], decodedGenome)
     decoding_gen = open("decoding_gen" + str(1) + '.fa', 'x')
     decoding_gen.write("> pred-ann" + str(1) + "\n" + str(raw_viterbi) + "\n" + str(statesSeq) + "\n" + decodedGenome)
-
-    raw_viterbi = viterbi_test(trans_mat=trans_prob_matrix,
-                               pi=init,
-                               emat=emis_prob_matrix,
-                                seq=translateObs_toindex(gen_arr[0][0]))
-    print(raw_viterbi)
+    print_all(gen_arr[0][1], decodedGenome)
