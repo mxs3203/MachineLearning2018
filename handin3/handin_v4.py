@@ -378,15 +378,26 @@ def mapCodonsToIndexes():
 
     return map
 
+def updateInitCount(init, char):
+    if char == 'C':
+        init[0] += 1
+    if char == 'R':
+        init[1] += 1
+    if char == 'N':
+        init[2] += 1
+    return  init
+
 def cv(gen_arr):
 
     for validate_set in gen_arr:
 
         emiss_count = np.zeros((7, len(allPossibleBases(size=3))))
         trans_count = np.ones((7, 7))
+        init_count = np.zeros((7))
 
         for train_set in gen_arr:
             if validate_set[0] != train_set[0]:
+                init_count = updateInitCount(init_count, train_set[1][0])
                 c_list, r_list, n_list, start_codons_c, end_codons_c, start_codons_r, end_codons_r = extract_seq(train_set[0], train_set[1])
                 # Emission matrix
                 dict_of_all_codons_c = allPossibleBases(size=3)
@@ -429,8 +440,9 @@ def cv(gen_arr):
                                       trans_count.sum(axis=1, keepdims=True),
                                       out=np.zeros_like(trans_count),
                                       where=trans_count.sum(axis=1, keepdims=True) != 0)
-        # start with N
-        init = [0, 0, 1, 0, 0, 0, 0]
+        init = np.array(init_count / init_count.sum())
+
+
         # Let try to get results for first annotated genome...
         raw_viterbi = viterbi(init_probs=init,
                               trans_probs=trans_prob_matrix,
@@ -457,23 +469,21 @@ def cv(gen_arr):
 
 def predict(init, trans, emit, unknownGenomes):
     cnt = 6
-    for genome in unknownGenomes:
-        raw_viterbi = viterbi(init_probs=init,
-                              trans_probs=trans,
-                              emission_probs=emit,
-                              seq=genome)
-        ## TODO: fix reading frames, compare lengths...
-        print(len(raw_viterbi))
-        print(len(gen_arr[0][1][0:len(gen_arr[0][1]) - 1]))
+    with open("decoding_unknonwn.fa", 'x') as decoding_gen:
+        for genome in unknownGenomes:
+            raw_viterbi = viterbi(init_probs=init,
+                                  trans_probs=trans,
+                                  emission_probs=emit,
+                                  seq=genome)
 
-        # vterbi returns numbers corresponding to 7 states
-        statesSeq = transformIndexesToAnnSeq(raw_viterbi)  # transform indexes to states(chars)
-        decodedGenome = replaceAnnotatedSeq(statesSeq, forModeling=False)  # for modeling is with 7 states(chars) ,without with 3
+            # vterbi returns numbers corresponding to 7 states
+            statesSeq = transformIndexesToAnnSeq(raw_viterbi)  # transform indexes to states(chars)
+            decodedGenome = replaceAnnotatedSeq(statesSeq, forModeling=False)  # for modeling is with 7 states(chars) ,without with 3
 
+            decoding_gen.write("> pred-ann" + str(cnt) + "\n" + decodedGenome)
+            cnt = cnt + 1
 
-        decoding_gen = open("decoding_gen" + str(cnt) + '.fa', 'x')
-        decoding_gen.write( "> pred-ann" + str(cnt) + "\n" + decodedGenome)
-        cnt = cnt + 1
+    decoding_gen.close()
 
 if __name__ == '__main__':
     CV = True
@@ -513,8 +523,9 @@ if __name__ == '__main__':
     else:
         emiss_count = np.zeros((7, len(allPossibleBases(size=3))))
         trans_count = np.ones((7, 7))
+        init_count = np.zeros((7))
         for i in gen_arr:
-
+            init_count = updateInitCount(init_count, i[1][0])
             c_list, r_list, n_list, start_codons_c, end_codons_c, start_codons_r, end_codons_r = extract_seq(i[0], i[1])
             # Emission matrix
             dict_of_all_codons_c = allPossibleBases(size=3)
@@ -557,13 +568,12 @@ if __name__ == '__main__':
                                       trans_count.sum(axis=1, keepdims=True),
                                       out=np.zeros_like(trans_count),
                                       where=trans_count.sum(axis=1, keepdims=True) != 0)
+        init = np.array(init_count / init_count.sum())
         print("C             R           N           SC(X)         EC(Y)         SR(z)          ER(W) ")
         matprint(trans_prob_matrix)
+        print(init)
 
 
-
-        # start with N
-        init = [0, 0, 1, 0, 0, 0, 0]
         # Let try to get results for first annotated genome...
         raw_viterbi = viterbi(init_probs=init,
                               trans_probs=trans_prob_matrix,
