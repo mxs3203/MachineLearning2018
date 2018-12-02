@@ -378,10 +378,105 @@ def mapCodonsToIndexes():
 
     return map
 
+def cv(gen_arr):
 
+    for validate_set in gen_arr:
+
+        emiss_count = np.zeros((7, len(allPossibleBases(size=3))))
+        trans_count = np.ones((7, 7))
+
+        for train_set in gen_arr:
+            if validate_set[0] != train_set[0]:
+                c_list, r_list, n_list, start_codons_c, end_codons_c, start_codons_r, end_codons_r = extract_seq(train_set[0], train_set[1])
+                # Emission matrix
+                dict_of_all_codons_c = allPossibleBases(size=3)
+                dict_of_all_codons_r = allPossibleBases(size=3)
+                dict_of_all_codons_n = allPossibleBases(size=3)
+
+                dict_of_all_start_c = tranfromListToDict(start_codons_c)
+                dict_of_all_end_c = tranfromListToDict(end_codons_c)
+                dict_of_all_start_r = tranfromListToDict(start_codons_r)
+                dict_of_all_end_r = tranfromListToDict(end_codons_r)
+
+                dict_of_all_codons_c = countCodons(c_list, dict_of_all_codons_c)
+                dict_of_all_codons_r = countCodons(r_list, dict_of_all_codons_r)
+                dict_of_all_codons_n = countCodons(n_list, dict_of_all_codons_n)
+
+                j = 0
+                for key in dict_of_all_codons_c.keys():
+                    emiss_count[0][j] = emiss_count[0][j] + dict_of_all_codons_c[key]
+                    emiss_count[1][j] = emiss_count[1][j] + dict_of_all_codons_r[key]
+                    emiss_count[2][j] = emiss_count[2][j] + dict_of_all_codons_n[key]
+                    if key in dict_of_all_start_c.keys():
+                        emiss_count[3][j] = emiss_count[3][j] + dict_of_all_start_c[key]
+                    if key in dict_of_all_end_c.keys():
+                        emiss_count[4][j] = emiss_count[4][j] + dict_of_all_end_c[key]
+                    if key in dict_of_all_start_r.keys():
+                        emiss_count[5][j] = emiss_count[5][j] + dict_of_all_start_r[key]
+                    if key in dict_of_all_end_r.keys():
+                        emiss_count[6][j] = emiss_count[6][j] + dict_of_all_end_r[key]
+                    j = j + 1
+
+                ann_with_intermedian_states = replaceAnnotatedSeq(train_set[1], forModeling=True)
+                trans_matrix = create_count_matrix(ann_with_intermedian_states)
+                trans_count = updateTransMatrix(trans_count, trans_matrix)
+
+        emis_prob_matrix = np.divide(emiss_count,
+                                     emiss_count.sum(axis=1, keepdims=True),
+                                     out=np.zeros_like(emiss_count),
+                                     where=emiss_count.sum(axis=1, keepdims=True) != 0)
+        trans_prob_matrix = np.divide(trans_count,
+                                      trans_count.sum(axis=1, keepdims=True),
+                                      out=np.zeros_like(trans_count),
+                                      where=trans_count.sum(axis=1, keepdims=True) != 0)
+        # start with N
+        init = [0, 0, 1, 0, 0, 0, 0]
+        # Let try to get results for first annotated genome...
+        raw_viterbi = viterbi(init_probs=init,
+                              trans_probs=trans_prob_matrix,
+                              emission_probs=emis_prob_matrix,
+                              seq=validate_set[0])
+        if len(raw_viterbi) != len(validate_set[1]):
+            # TODO: fix reading frame
+            print("reading frame problem!")
+            diff = abs(len(raw_viterbi) - len(validate_set[1]))
+
+            print(len(raw_viterbi))
+            print(len(validate_set[1][0:len(validate_set[1]) - diff]))
+            # vterbi returns numbers corresponding to 7 states
+            statesSeq = transformIndexesToAnnSeq(raw_viterbi)  # transform indexes to states(chars)
+            decodedGenome = replaceAnnotatedSeq(statesSeq,
+                                                forModeling=False)  # for modeling is with 7 states(chars) ,without with 3
+            print_all(validate_set[1][0:len(validate_set[1]) - diff], decodedGenome)
+        else:
+
+            # vterbi returns numbers corresponding to 7 states
+            statesSeq = transformIndexesToAnnSeq(raw_viterbi)  # transform indexes to states(chars)
+            decodedGenome = replaceAnnotatedSeq(statesSeq,forModeling=False)  # for modeling is with 7 states(chars) ,without with 3
+            print_all(validate_set[1], decodedGenome)
+
+def predict(init, trans, emit, unknownGenomes):
+    cnt = 6
+    for genome in unknownGenomes:
+        raw_viterbi = viterbi(init_probs=init,
+                              trans_probs=trans,
+                              emission_probs=emit,
+                              seq=genome)
+        ## TODO: fix reading frames, compare lengths...
+        print(len(raw_viterbi))
+        print(len(gen_arr[0][1][0:len(gen_arr[0][1]) - 1]))
+
+        # vterbi returns numbers corresponding to 7 states
+        statesSeq = transformIndexesToAnnSeq(raw_viterbi)  # transform indexes to states(chars)
+        decodedGenome = replaceAnnotatedSeq(statesSeq, forModeling=False)  # for modeling is with 7 states(chars) ,without with 3
+
+
+        decoding_gen = open("decoding_gen" + str(cnt) + '.fa', 'x')
+        decoding_gen.write( "> pred-ann" + str(cnt) + "\n" + decodedGenome)
+        cnt = cnt + 1
 
 if __name__ == '__main__':
-
+    CV = True
     # ################# Unit Testing ####################################
 
     full_path = 'C:/Users/Ky/Desktop/ml18/handin3/'
@@ -413,71 +508,81 @@ if __name__ == '__main__':
 
     unknown_arr = [gen6['genome6'], gen7['genome7'], gen8['genome8'], gen9['genome9'], gen10['genome10']]
 
-    emiss_count = np.zeros((7, len(allPossibleBases(size=3))))
-    trans_count = np.ones((7, 7))
-    for i in gen_arr:
+    if CV:
+        cv(gen_arr)
+    else:
+        emiss_count = np.zeros((7, len(allPossibleBases(size=3))))
+        trans_count = np.ones((7, 7))
+        for i in gen_arr:
 
-        c_list, r_list, n_list, start_codons_c, end_codons_c, start_codons_r, end_codons_r = extract_seq(i[0], i[1])
-        # Emission matrix
-        dict_of_all_codons_c = allPossibleBases(size=3)
-        dict_of_all_codons_r = allPossibleBases(size=3)
-        dict_of_all_codons_n = allPossibleBases(size=3)
+            c_list, r_list, n_list, start_codons_c, end_codons_c, start_codons_r, end_codons_r = extract_seq(i[0], i[1])
+            # Emission matrix
+            dict_of_all_codons_c = allPossibleBases(size=3)
+            dict_of_all_codons_r = allPossibleBases(size=3)
+            dict_of_all_codons_n = allPossibleBases(size=3)
 
-        dict_of_all_start_c = tranfromListToDict(start_codons_c)
-        dict_of_all_end_c = tranfromListToDict(end_codons_c)
-        dict_of_all_start_r = tranfromListToDict(start_codons_r)
-        dict_of_all_end_r = tranfromListToDict(end_codons_r)
+            dict_of_all_start_c = tranfromListToDict(start_codons_c)
+            dict_of_all_end_c = tranfromListToDict(end_codons_c)
+            dict_of_all_start_r = tranfromListToDict(start_codons_r)
+            dict_of_all_end_r = tranfromListToDict(end_codons_r)
 
-        dict_of_all_codons_c = countCodons(c_list, dict_of_all_codons_c)
-        dict_of_all_codons_r = countCodons(r_list, dict_of_all_codons_r)
-        dict_of_all_codons_n = countCodons(n_list, dict_of_all_codons_n)
+            dict_of_all_codons_c = countCodons(c_list, dict_of_all_codons_c)
+            dict_of_all_codons_r = countCodons(r_list, dict_of_all_codons_r)
+            dict_of_all_codons_n = countCodons(n_list, dict_of_all_codons_n)
 
-        j = 0
-        for key in dict_of_all_codons_c.keys():
-            emiss_count[0][j] = emiss_count[0][j] + dict_of_all_codons_c[key]
-            emiss_count[1][j] = emiss_count[1][j] + dict_of_all_codons_r[key]
-            emiss_count[2][j] = emiss_count[2][j] + dict_of_all_codons_n[key]
-            if key in dict_of_all_start_c.keys():
-                emiss_count[3][j] = emiss_count[3][j] + dict_of_all_start_c[key]
-            if key in dict_of_all_end_c.keys():
-                emiss_count[4][j] = emiss_count[4][j] + dict_of_all_end_c[key]
-            if key in dict_of_all_start_r.keys():
-                emiss_count[5][j] = emiss_count[5][j] + dict_of_all_start_r[key]
-            if key in dict_of_all_end_r.keys():
-                emiss_count[6][j] = emiss_count[6][j] + dict_of_all_end_r[key]
-            j = j + 1
+            j = 0
+            for key in dict_of_all_codons_c.keys():
+                emiss_count[0][j] = emiss_count[0][j] + dict_of_all_codons_c[key]
+                emiss_count[1][j] = emiss_count[1][j] + dict_of_all_codons_r[key]
+                emiss_count[2][j] = emiss_count[2][j] + dict_of_all_codons_n[key]
+                if key in dict_of_all_start_c.keys():
+                    emiss_count[3][j] = emiss_count[3][j] + dict_of_all_start_c[key]
+                if key in dict_of_all_end_c.keys():
+                    emiss_count[4][j] = emiss_count[4][j] + dict_of_all_end_c[key]
+                if key in dict_of_all_start_r.keys():
+                    emiss_count[5][j] = emiss_count[5][j] + dict_of_all_start_r[key]
+                if key in dict_of_all_end_r.keys():
+                    emiss_count[6][j] = emiss_count[6][j] + dict_of_all_end_r[key]
+                j = j + 1
 
-        ann_with_intermedian_states = replaceAnnotatedSeq(i[1], forModeling=True)
-        trans_matrix = create_count_matrix(ann_with_intermedian_states)
-        trans_count = updateTransMatrix(trans_count, trans_matrix)
+            ann_with_intermedian_states = replaceAnnotatedSeq(i[1], forModeling=True)
+            trans_matrix = create_count_matrix(ann_with_intermedian_states)
+            trans_count = updateTransMatrix(trans_count, trans_matrix)
 
-    emis_prob_matrix = np.divide(emiss_count,
-                                 emiss_count.sum(axis=1, keepdims=True),
-                                 out=np.zeros_like(emiss_count),
-                                 where=emiss_count.sum(axis=1, keepdims=True) != 0)
-    trans_prob_matrix = np.divide(trans_count,
-                                  trans_count.sum(axis=1, keepdims=True),
-                                  out=np.zeros_like(trans_count),
-                                  where=trans_count.sum(axis=1, keepdims=True) != 0)
-    print("C             R           N           SC(X)         EC(Y)         SR(z)          ER(W) ")
-    matprint(trans_prob_matrix)
-    # start with N
-    init = [0, 0, 1, 0, 0, 0, 0]
-    # Let try to get results for first annotated genome...
-    raw_viterbi = viterbi(init_probs=init,
-                          trans_probs=trans_prob_matrix,
-                          emission_probs=emis_prob_matrix,
-                          seq=gen_arr[0][0])
-    print(len(raw_viterbi))
-    print(len(gen_arr[0][1][0:len(gen_arr[0][1])-1]))
-    #print(raw_viterbi)
-    # vterbi returns numbers corresponding to 7 states
+        emis_prob_matrix = np.divide(emiss_count,
+                                     emiss_count.sum(axis=1, keepdims=True),
+                                     out=np.zeros_like(emiss_count),
+                                     where=emiss_count.sum(axis=1, keepdims=True) != 0)
+        trans_prob_matrix = np.divide(trans_count,
+                                      trans_count.sum(axis=1, keepdims=True),
+                                      out=np.zeros_like(trans_count),
+                                      where=trans_count.sum(axis=1, keepdims=True) != 0)
+        print("C             R           N           SC(X)         EC(Y)         SR(z)          ER(W) ")
+        matprint(trans_prob_matrix)
 
-    statesSeq = transformIndexesToAnnSeq(raw_viterbi)  # transform indexes to states(chars)
-    #print(statesSeq)
-    decodedGenome = replaceAnnotatedSeq(statesSeq, forModeling=False)  # for modeling is with 7 states(chars) ,without with 3
-    #print(decodedGenome)
 
-    decoding_gen = open("decoding_gen" + str(1) + '.fa', 'x')
-    decoding_gen.write("> pred-ann" + str(1) + "\n" + str(raw_viterbi) + "\n" + str(statesSeq) + "\n" + decodedGenome)
-    print_all(gen_arr[0][1][0:len(gen_arr[0][1])-1], decodedGenome)
+
+        # start with N
+        init = [0, 0, 1, 0, 0, 0, 0]
+        # Let try to get results for first annotated genome...
+        raw_viterbi = viterbi(init_probs=init,
+                              trans_probs=trans_prob_matrix,
+                              emission_probs=emis_prob_matrix,
+                              seq=gen_arr[0][0])
+        print(len(raw_viterbi))
+        print(len(gen_arr[0][1][0:len(gen_arr[0][1])-1]))
+        #print(raw_viterbi)
+        # vterbi returns numbers corresponding to 7 states
+
+        statesSeq = transformIndexesToAnnSeq(raw_viterbi)  # transform indexes to states(chars)
+        #print(statesSeq)
+        decodedGenome = replaceAnnotatedSeq(statesSeq, forModeling=False)  # for modeling is with 7 states(chars) ,without with 3
+        #print(decodedGenome)
+
+        decoding_gen = open("decoding_gen" + str(1) + '.fa', 'x')
+        decoding_gen.write("> pred-ann" + str(1) + "\n" + str(raw_viterbi) + "\n" + str(statesSeq) + "\n" + decodedGenome)
+        print_all(gen_arr[0][1][0:len(gen_arr[0][1])-1], decodedGenome)
+
+
+
+        predict(init, trans_prob_matrix, emis_prob_matrix, unknown_arr)
