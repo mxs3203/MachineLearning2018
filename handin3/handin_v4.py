@@ -97,7 +97,7 @@ def print_all(true, pred):
 
 def readFiles():
     full_path = 'C:/Users/Ky/Desktop/ml18/handin3/'
-    #full_path = 'handin3/'
+    full_path = 'handin3/'
     gen1 = read_fasta_file(full_path + 'data-handin3/genome1.fa')
     ann1 = read_fasta_file(full_path + 'data-handin3/true-ann1.fa')
 
@@ -480,7 +480,7 @@ def cv(gen_arr):
         init = np.array(init_count / init_count.sum())
 
 
-        # Let try to get results for first annotated genome...
+        # Try to find best reading frame
         acc_list = []
         v_list = []
         for i in range(3):
@@ -501,13 +501,13 @@ def cv(gen_arr):
         decodedGenome = v_list[frame]
 
         print_all(validate_set[1][frame:len(decodedGenome)], decodedGenome)
-
+        print("")
 
 
 def train_by_count(gen_arr):
     emiss_count = np.zeros((7, len(allPossibleBases(size=3))))
     trans_count = np.ones((7, 7))
-    init_count = np.ones((7))
+    init_count = np.zeros((7))
     for i in gen_arr:
         init_count = updateInitCount(init_count, i[1][0])
         c_list, r_list, n_list, start_codons_c, end_codons_c, start_codons_r, end_codons_r = extract_seq(i[0], i[1])
@@ -556,15 +556,17 @@ def train_by_count(gen_arr):
     print("C             R           N           SC(X)         EC(Y)         SR(z)          ER(W) ")
     matprint(trans_prob_matrix)
     print(init)
-
+    print("End train by count: returning trans, emis and init")
     return init, trans_prob_matrix, emis_prob_matrix
 
 
 def predict(init, trans, emit, unknownGenomes):
+    print("starting predict")
     cnt = 6
     with open("decoding_unknown.fa", 'w') as decoding_gen:
         for genome in unknownGenomes:
 
+            print("predicting genome " + str(cnt))
             acc_list = []
             v_list = []
             for i in range(3):
@@ -580,14 +582,17 @@ def predict(init, trans, emit, unknownGenomes):
 
             frame = acc_list.index(max(acc_list))
             decodedGenome = v_list[frame]
-
+            print("1 ",decodedGenome)
+            print("2 ",frame)
             decodedGenome = decodedGenome[0] * frame + decodedGenome
+            print("3 ",decodedGenome)
 
             diff = abs(len(decodedGenome) - len(genome))
+            print("diff before: ", diff)
             if diff != 0:
                 decodedGenome = decodedGenome + decodedGenome[-1] * diff
 
-            print(abs(len(decodedGenome) - len(genome)))
+            print("diff after: ", abs(len(decodedGenome) - len(genome)))
 
             decoding_gen.write("\n> pred-ann" + str(cnt) + "\n" + decodedGenome)
             cnt = cnt + 1
@@ -595,7 +600,7 @@ def predict(init, trans, emit, unknownGenomes):
     decoding_gen.close()
 
 if __name__ == '__main__':
-    CV = True
+    CV = False
 
     gen_arr, unknown_arr = readFiles()
 
@@ -603,40 +608,4 @@ if __name__ == '__main__':
         cv(gen_arr)
     else:
         init, trans_prob_matrix, emis_prob_matrix = train_by_count(gen_arr)
-
-        # Let try to get results for first annotated genome...
-        raw_viterbi = viterbi(init_probs=init,
-                              trans_probs=trans_prob_matrix,
-                              emission_probs=emis_prob_matrix,
-                              seq=gen_arr[0][0])
-        print(len(raw_viterbi))
-        print(len(gen_arr[0][1]))
-        for i in range(3):
-            raw_viterbi = viterbi(init_probs=init,
-                                  trans_probs=trans_prob_matrix,
-                                  emission_probs=emis_prob_matrix,
-                                  seq=gen_arr[0][0][i:])
-            print(len(raw_viterbi))
-            print(len(gen_arr[0][1][0:len(gen_arr[0][1]) - 1]))
-            # print(raw_viterbi)
-            # vterbi returns numbers corresponding to 7 states
-
-        # viterbi returns numbers corresponding to 7 states
-        statesSeq = transformIndexesToAnnSeq(raw_viterbi)  # transform indexes to states(chars)
-        decodedGenome = replaceAnnotatedSeq(statesSeq, forModeling=False)  # for modeling is with 7 states(chars) ,without with 3
-        print_all(gen_arr[0][1][0:len(gen_arr[0][1])-1], decodedGenome)
-
-
-        statesSeq = transformIndexesToAnnSeq(raw_viterbi)  # transform indexes to states(chars)
-        # print(statesSeq)
-        decodedGenome = replaceAnnotatedSeq(statesSeq,
-                                            forModeling=False)  # for modeling is with 7 states(chars) ,without with 3
-        # print(decodedGenome)
-
-        # decoding_gen = open("decoding_gen" + str(1) + '.fa', 'x')
-        # decoding_gen.write("> pred-ann" + str(1) + "\n" + str(raw_viterbi) + "\n" + str(statesSeq) + "\n" + decodedGenome)
-        print_all(gen_arr[0][1][i:len(decodedGenome) + i], decodedGenome)
-
-    init, trans_prob_matrix, emis_prob_matrix = train_by_count(gen_arr)
-
-    predict(init, trans_prob_matrix, emis_prob_matrix, unknown_arr)
+        predict(init, trans_prob_matrix, emis_prob_matrix, unknown_arr)
