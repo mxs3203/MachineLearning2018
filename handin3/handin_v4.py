@@ -397,6 +397,7 @@ def transformIndexesToAnnSeq(ann):
     return [dict[symbol] for symbol in ann]
 
 
+
 def count_char(seq, from_char, to_char):
     count = 0
     for i in range(0, len(seq) - 1):
