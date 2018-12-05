@@ -6,6 +6,8 @@ import sklearn.datasets
 import imageio
 import matplotlib.pyplot as plt
 import os
+
+from sklearn.metrics.pairwise import distance_metrics
 from sklearn.mixture import GaussianMixture as EM
 from tensorflow.examples.tutorials.mnist import input_data
 
@@ -303,30 +305,19 @@ def intra_cluster_distance(X, labels):
     return np.array(mean_dist)
 
 
-def nearest_cluster_distance(X, labels):
-    # label = labels[i]
-    # b = np.min([np.mean([metric(X[i].reshape(1, -1), X[j].reshape(1, -1)) for j in np.where(labels == cur_label)[0]]) for cur_label in set(labels) if not cur_label == label])
-    k = len(np.unique(labels))
-
-    mean_dist = []
-    for label in range(k):
-        collect = []
-        for x_1 in range(len(X)):
-            print(labels[x_1])
-            for x_2 in range(len(X)):
-                if labels[x_1] == label and labels[x_2] != label:
-                    euclid_norm = np.linalg.norm(X[x_1] - X[x_2])
-                    collect.append(euclid_norm)
-        mean_dist.append(np.mean(collect))
-
-    return np.array(mean_dist)
-
+def _nearest_cluster_distance(X, labels, i):
+    label = labels[i]
+    b = np.min(
+        [np.mean(
+            [np.linalg.norm(X[i] - X[j]) for j in np.where(labels == cur_label)[0]]
+        ) for cur_label in set(labels) if not cur_label == label])
+    return b
 
 def silhouette(X, labels):
     A = intra_cluster_distance(X, labels)
-    print(A)
-    B = nearest_cluster_distance(X, labels)
-    print(B)
+    #print(A)
+    B = np.array(np.mean([_nearest_cluster_distance(X, labels, i) for i in range(len(X))]))
+    #print(B)
     silh_samples = (B - A) / np.maximum(A, B)
 
     silh = np.mean(np.nan_to_num(silh_samples))
@@ -366,7 +357,7 @@ def test_k_with_silhouette():
 
     results_f1 = np.zeros((10, 3))
 
-    for k in range(2, 9, 1):
+    for k in range(2, 7, 1):
         print(k)
         predictions_em = cluster_with_em(k=k)
         predictions_lloyd_em = use_lloyd_on_em(100, k=k)
